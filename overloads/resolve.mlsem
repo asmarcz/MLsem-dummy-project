@@ -2,6 +2,30 @@
    becomes itself minus the domains of the overloads before it. A domain
    strictly inside another goes first, otherwise the order of the val lines. *)
 
+val (+) : (int, int) -> int
+
+(* Trees: the empty tree goes first, the general case becomes
+   tree \ Leaf, and poly('a) \ Leaf for the polymorphic one. *)
+type tree = Leaf | Node(tree, int, tree)
+
+val count : tree -> int
+val count : Leaf -> 0
+let count t =
+  match t with
+  | Leaf -> 0
+  | Node(l, _, r) -> count l + 1 + count r
+  end
+
+type poly('a) = PLeaf | PNode(poly('a), 'a, poly('a))
+
+val depth : poly('a) -> int
+val depth : PLeaf -> 0
+let depth t =
+  match t with
+  | PLeaf -> 0
+  | PNode(l, _, r) -> 1 + depth l
+  end
+
 (* A special case: Zero() goes first, the general case becomes t \ Zero(). *)
 type t = Zero() | One(int) | Many([int*])
 
