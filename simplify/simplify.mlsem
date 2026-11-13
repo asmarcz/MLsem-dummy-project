@@ -1,24 +1,33 @@
 (* Simplify tool: put the cursor in a definition; every part of its val
-   lines with a simpler form gets an anchor. Each form means the same. *)
+   lines with a simpler form gets an anchor. Each form means the same, and
+   is labelled with the steps that give it. Regrouping and factorizing rarely
+   show on their own: the printer already does what they do. *)
 
 type digit = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
-(* A type and its subtype: int | digit is int, true | false is bool. *)
-val f : int | digit -> true | false
-let f x = true
+(* Two forms for the whole line:
+   'a -> int        printed (int | digit is int)
+   any -> int       unused variables dropped ('a is only an input) *)
+val p : 'a -> int | digit
+let p x = 1
 
-(* Arrows intersected, and literals as an interval:
-   (int -> int) & (int -> bool) is int -> empty, 1 | 2 | 3 is (1..3). *)
-val k : (int -> int) & (int -> bool) -> 1 | 2 | 3
-let k f = 1
+(* Two forms for the whole line:
+   'a & (int | bool) -> 'b -> 'a     printed, factorized
+   'a & (int | bool) -> any -> 'a    unused variables dropped ('b; 'a is kept,
+                                     it is an input and an output) *)
+val q : ('a & int) | ('a & bool) -> 'b -> 'a
+let q x y = x
 
-(* Unused variables: 'a only in an input position becomes any; 'c too. *)
-val g : 'a -> (int, bool) | (int, string)
-let g x = (1, true)
+(* A duplicate: int & 'a & int is 'a & int. *)
+val foo : int & 'a & int -> int & 'a & int
+let foo x = x
 
-val h : ('b, int) -> 'c -> 'b
-let h p y = fst p
+(* Arrows and records intersected, literals as an interval:
+   (int -> 'r) & (bool -> 'r) is (int | bool -> 'r),
+   { x : int .. } & { y : bool .. } is { x : int; y : bool .. },
+   1 | 2 | 3 is (1..3). *)
+val k : (int -> 'r) & (bool -> 'r) -> 'r
+let k f = f 1
 
-(* Already factorized by the printer: 'a & (int | bool). *)
-val m : ('a & int) | ('a & bool) -> 'a
-let m x = x
+val r : { x : int .. } & { y : bool .. } -> 1 | 2 | 3
+let r v = 1
