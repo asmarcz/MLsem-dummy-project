@@ -1,0 +1,33 @@
+(* Resolve overlap: in Overload merging, select overloads; each domain
+   becomes itself minus the domains of the overloads before it. A domain
+   strictly inside another goes first, otherwise the order of the val lines. *)
+
+(* A special case: Zero() goes first, the general case becomes t \ Zero(). *)
+type t = Zero() | One(int) | Many([int*])
+
+val size : t -> int
+val size : Zero() -> 0
+let size x =
+  match x with
+  | Zero() -> 0
+  | One(_) -> 1
+  | Many(_) -> 2
+  end
+
+(* A chain, select all three: int \ (1 | 2), (1 | 2) \ 1, 1. *)
+val g : int -> int | bool
+val g : 1 | 2 -> bool
+val g : 1 -> true
+let g x = if x is 1 then true else (if x is 2 then false else x)
+
+(* Unreachable, select all three: true and false go first, and bool minus
+   both is empty, so the bool line is reported, not changed. *)
+val neg : bool -> bool
+val neg : true -> false
+val neg : false -> true
+let neg b = if b then false else true
+
+(* No overlap, select both: nothing changes. *)
+val sign : int -> int
+val sign : string -> string
+let sign x = x
