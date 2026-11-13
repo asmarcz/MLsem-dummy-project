@@ -1,42 +1,65 @@
-(* Recursion and draft signatures. While a draft's body is checked, the
-   function sees itself at the draft type, with the holes shared by all the
-   recursive calls, as for a recursive function without val. The drafts of
-   a let ... and ... group are checked together, before the complete
-   signatures of the group, and enter the environment once resolved. *)
+(* Recursive drafts. In its body, a draft has the draft type, and its holes
+   are shared by all the recursive calls. Drafts that call each other must be
+   in one let ... and ... *)
 
 val (+) : (int, int) -> int
 val (-) : (int, int) -> int
 val (=) : ('a, 'a) -> bool
 
-(* ===== Recursion without drafts ===== *)
+(* ===== Without drafts ===== *)
 
-(* Complete val: in the environment from the start.
-   expected: len1 : [ any* ] -> int *)
+(* expected: len1 : [ any* ] -> int *)
 val len1 : [any*] -> int
 let len1 l = match l with [] -> 0 | _::xs -> 1 + len1 xs end
 
-(* No val: inferred as a recursive definition.
-   expected: len2 : ([ any+ ] -> int) & ([  ] -> 0) *)
+(* No val. expected: len2 : ([ any+ ] -> int) & ([  ] -> 0) *)
 let len2 l = match l with [] -> 0 | _::xs -> 1 + len2 xs end
 
-(* ===== Recursive drafts ===== *)
+(* ===== Drafts ===== *)
 
-(* The recursive call sees the draft.
-   expected: len3 : [ any* ] -> int *)
+(* expected: len3 : [ any* ] -> int *)
 val len3 : [any*] -> _
 let len3 l = match l with [] -> 0 | _::xs -> 1 + len3 xs end
 
-(* Mutual recursion: even (complete) calls odd (draft) in the same group.
+(* Overloaded. expected: len4 : ([ any+ ] -> int) & ([  ] -> 0) *)
+val len4 : [] -> _
+val len4 : [any+] -> _
+let len4 l = match l with [] -> 0 | _::xs -> 1 + len4 xs end
+
+(* expected: fact : int -> int *)
+val fact : _ -> int
+let fact n = if n = 0 then 1 else n + fact (n - 1)
+
+(* The recursive call never returns, so its type is empty.
+   expected: bad : int -> empty *)
+val bad : int -> _
+let bad x = (bad x) + true
+
+(* ===== Mutual recursion ===== *)
+
+(* A complete val and a draft.
    expected: even : int -> bool, odd : int -> bool *)
 val even : int -> bool
 val odd : int -> _
 let even n = if n = 0 then true else odd (n - 1)
 and odd n = if n = 0 then false else even (n - 1)
 
-(* ===== Why a shared hole is weaker than a complete val ===== *)
+(* Two drafts. expected: even2 : int -> bool, odd2 : int -> bool *)
+val even2 : int -> _
+val odd2 : _ -> bool
+let even2 n = if n = 0 then true else odd2 (n - 1)
+and odd2 n = if n = 0 then false else even2 (n - 1)
 
-(* With a complete val, each recursive call picks its own 'a: the inner
-   calls use it at int and at bool.
+(* Drafts are checked first, so loop can use one.
+   expected: one : 1, loop : int -> int *)
+val one : _
+val loop : int -> int
+let one = 1
+and loop n = if n = 0 then one else loop (n - 1)
+
+(* ===== Shared holes are less precise ===== *)
+
+(* A complete val: each call picks its own 'a.
    expected: twice_id : 'a -> 'a *)
 (* val twice_id : 1 | true | 'a -> 1 | true | 'a *)
 val twice_id : 'a -> 'a
@@ -45,22 +68,16 @@ let twice_id x =
   let b = twice_id true in
   x
 
-(* A hole has one meaning in the whole body, so both recursive calls use it
-   and it becomes 1 | true | ...
-   expected, with the val: twice_draft : 'a -> 1 | true | 'a
-   expected, without it (as now): twice_draft : 1 | true | 'a -> 1 | true | 'a
-
-   The textbook case of calls that need ever-growing types, a nested type
-   such as type nest('a) = Nil | Cons('a, nest(('a, 'a))), cannot be written
-   in MLsem: recursive types must be regular ("Too many instantiations of
-   type nest: is it a regular type?"). *)
+(* A hole: both calls share it, so it collects 1 | true.
+   expected with the val: twice_draft : 'a -> 1 | true | 'a
+   expected without:      twice_draft : 1 | true | 'a -> 1 | true | 'a *)
 (* val twice_draft : _ -> _ *)
 let twice_draft x =
   let a = twice_draft 1 in
   let b = twice_draft true in
   x
 
-(* In the body, 'a is fixed: the recursive calls cannot pick their own.
+(* 'a is fixed in the body, so the calls cannot use it at int.
    expected: twice_mixed: untypeable application *)
 val twice_mixed : 'a -> _
 let twice_mixed x =
@@ -68,39 +85,6 @@ let twice_mixed x =
   let b = twice_mixed true in
   x
 
-(* ===== More recursive drafts ===== *)
-
-(* Overloaded draft.
-   expected: len4 : ([ any+ ] -> int) & ([  ] -> 0) *)
-val len4 : [] -> _
-val len4 : [any+] -> _
-let len4 l = match l with [] -> 0 | _::xs -> 1 + len4 xs end
-
-(* Hole in the domain only.
-   expected: fact : int -> int *)
-val fact : _ -> int
-let fact n = if n = 0 then 1 else n + fact (n - 1)
-
-(* The recursive call never returns, so its result is empty and the
-   addition with true is accepted.
-   expected: bad : int -> empty *)
-val bad : int -> _
-let bad x = (bad x) + true
-
-(* Mutual recursion, both drafts.
-   expected: even2 : int -> bool, odd2 : int -> bool *)
-val even2 : int -> _
-val odd2 : _ -> bool
-let even2 n = if n = 0 then true else odd2 (n - 1)
-and odd2 n = if n = 0 then false else even2 (n - 1)
-
-(* A complete signature in the group uses a draft: drafts are checked first.
-   expected: one : 1, loop : int -> int *)
-val one : _
-val loop : int -> int
-let one = 1
-and loop n = if n = 0 then one else loop (n - 1)
-
-(* Drafts in separate lets cannot call each other: a draft enters the
-   environment only once its definition is typed. Write them as one
-   let ... and ... instead. *)
+(* Polymorphic recursion's textbook case, a nested type such as
+   type nest('a) = Nil | Cons('a, nest(('a, 'a))), is not expressible:
+   MLsem rejects non-regular types. *)

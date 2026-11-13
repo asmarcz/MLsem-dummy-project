@@ -1,0 +1,52 @@
+(* Debug queries. Results show as hints in the editor.
+
+   ## t            the type t, simplified
+   ## t1 <= t2     subtyping (also >=, =)
+   ## { c; ... }   tally: substitutions for the weak variables ('_a) that
+                   satisfy all constraints *)
+
+(* ===== Types ===== *)
+
+(* expected: int *)
+## (0..9) | int
+
+(* expected: bool *)
+## true | false
+
+(* ===== Subtyping ===== *)
+
+(* expected: true *)
+## (0..9) <= int
+
+(* expected: false *)
+## int <= string
+
+(* Arrows: contravariant domain.
+   expected: true *)
+## int -> 1 <= 1 -> int
+
+(* ===== Tally ===== *)
+
+(* One solution, with no substitution: the constraint holds.
+   expected: [ ] *)
+## { int <= any }
+
+(* No solution. expected: no solution *)
+## { bool <= int }
+
+(* expected: [ '_h: '_h & int ], i.e. anything below int *)
+## { '_h <= int }
+
+(* What a hole must be for a definition to fit its draft: the inferred type
+   on the left, the draft on the right. *)
+
+(* succ: int -> int against _ -> int.
+   expected: [ '_h: '_h & int ], below int *)
+## { int -> int <= '_h -> int }
+
+(* tag_true: int -> (int, true) against int -> _.
+   expected: [ '_h: (int, true) | '_h ], above (int, true) *)
+## { int -> (int, true) <= int -> '_h }
+
+(* With a fixed 'h instead of a hole. expected: no solution *)
+## { int -> int <= 'h -> int }
