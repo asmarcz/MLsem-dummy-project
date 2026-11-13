@@ -1,0 +1,33 @@
+(* Extracting repeated records. Open the type toolkit on a val below and
+   choose a part under "Extract repeated parts". *)
+
+(* The same record twice: extracted into where.
+   r -> r where r = { id : int; name : string } *)
+val same : { id : int; name : string } -> { id : int; name : string }
+let same p = p
+
+(* Two closed records sharing two fields: the shared fields become a
+   top-level type, written above the val, and each record adds its own.
+   Named person:
+   type person = { id : int; name : string }
+   { person with age : int } -> { person with email : string } *)
+val contact : { id : int; name : string; age : int } -> { id : int; name : string; email : string }
+let contact p = { id = p.id ; name = p.name ; email = "unknown" }
+
+(* Open records, with a type variable: the top-level type takes it as a
+   parameter.
+   type r('a) = { x : 'a; y : bool .. }
+   { r('a) with z : int } -> r('a) -> 'a *)
+val get_x : { x : 'a; y : bool; z : int .. } -> { x : 'a; y : bool .. } -> 'a
+let get_x p q = p.x
+
+(* Optional fields are shared like any other. Here the first record is all
+   shared fields, so it becomes the type itself. Named opts:
+   type opts = { verbose : bool? ; depth : int; path : string }
+   opts -> { opts with force : bool } *)
+val run : { verbose : bool? ; depth : int; path : string } -> { verbose : bool? ; depth : int; path : string; force : bool }
+let run o = { o with force = false }
+
+(* Records with different tails (closed and open) share nothing. *)
+val widen : { a : int; b : bool } -> { a : int; b : bool .. }
+let widen x = x
