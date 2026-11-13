@@ -1,0 +1,27 @@
+val (+) : (int, int) -> int
+
+let length_stub length lst =
+  if lst is [] then 0 else (length (tl lst))+1
+
+let id x = x
+
+
+(* val logical_or : any -> bool -> bool *)
+val logical_or : true -> any -> true
+val logical_or : ~true -> true -> true
+val logical_or : ~true -> ~true -> false
+let logical_or a b =
+  if a then true else (if b then true else false)
+
+(* val logical_or_2 : ~true -> 'a -> 'a
+val logical_or_2 : true -> 'a -> true *)
+val logical_or_2 : ~true -> 'a -> 'a
+val logical_or_2 : true -> 'a -> true
+let logical_or_2 a b =
+  if a then true else b
+
+let logical_or_3 a b =
+  match a with
+  | true -> true
+  | false -> b
+  end

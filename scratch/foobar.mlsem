@@ -1,0 +1,5 @@
+(* val id : int -> int
+val id : string -> string *)
+val id : (int -> int) & (string -> string)
+(* val id : (int | string) -> (int | string) *)
+let id x = x

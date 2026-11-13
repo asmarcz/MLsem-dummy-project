@@ -1,0 +1,80 @@
+val a : int
+val a : 5
+let a = 5
+
+
+(* val f : (int -> int) & (bool -> empty) *)
+(* val f : int | bool -> int *)
+(* val f : 'a & int -> 'a & int
+val f : ~int -> empty *)
+(* val f : int & int -> int & int
+val f : any \ int -> empty *)
+(* val f : 'a & int -> 'a & ints
+val f : 'a \ int -> empty *)
+(* val f : 'a & int -> 'a & int && 'b \ int -> empty *)
+(* val f : int & int -> int & int && 'b \ int -> empty
+val f : int -> int && 'b \ int -> empty *)
+
+
+
+
+
+
+
+
+
+
+
+
+val failwith : string -> empty
+let f x =
+  if x is int then x
+  else failwith "no bools"
+
+
+
+
+
+
+
+
+(* val i : 'a & int -> 'a & int
+val i : 'a \ int -> () *)
+let i x =
+  if x is int then ()
+  else 5
+  (* if x is int do return x
+  else return ()
+  end *)
+
+let g x =
+  match x with
+  | y & :int -> y
+  | :bool -> failwith "no bools"
+  end
+
+let h x =
+  match x with
+  | :int -> x
+  | :bool -> failwith "no bools"
+  end
+
+val j : (int | bool -> int -> int) & (int | bool -> bool -> bool)
+val j : int | bool -> (int -> int) & (bool -> bool) (* not inferred *)
+val j : (int -> int | bool -> int) & (bool -> int | bool -> bool)
+val j : int | bool -> int | bool -> int | bool
+
+(* let to_bool a =
+  if a is true then true
+   *)
+val to_bool : any -> bool
+val to_bool : true -> true
+val to_bool : false -> false
+
+(* val logical_or : 'b -> 'a -> 'b \ false | 'a *)
+val logical_or : any -> 'a -> ~false | 'a
+let logical_or x y =
+  if (to_bool x) then x
+  else y
+
+let k x = if x is arrow then 1 else 0

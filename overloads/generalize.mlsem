@@ -1,0 +1,27 @@
+(* Generalizing each definition's overloads, compared with the overloads. *)
+
+(* Stronger: the generalized type also claims (1 -> 1) -> 1 -> 1. *)
+val twice : (int -> int) -> int -> int
+val twice : (bool -> bool) -> bool -> bool
+let twice f x = f (f x)
+
+(* Stronger: the generalized type also claims 1 -> (1, 1). *)
+val pair : int -> (int, int)
+val pair : bool -> (bool, bool)
+let pair x = (x, x)
+
+(* Equivalent: int | string -> bool is the same type as one arrow. *)
+val always : int -> bool
+val always : string -> bool
+let always x = true
+
+(* Stronger: the generalized domain also accepts (int, string). *)
+val first : (int, bool) -> int
+val first : (bool, string) -> bool
+let first (x, y) = x
+
+(* Weaker: 1..2 -> (int | bool, bool | string) loses which input gives
+   which pair, so 1 -> (int, bool) no longer follows from it. *)
+val pick : 1 -> (int, bool)
+val pick : 2 -> (bool, string)
+let pick x = if x is 1 then (1, true) else (true, "s")

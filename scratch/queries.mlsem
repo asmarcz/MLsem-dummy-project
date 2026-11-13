@@ -1,0 +1,9 @@
+## int <= string
+
+## (0..9) <= int
+
+## { int <= any }
+
+## { bool <= int }
+
+let a = 4

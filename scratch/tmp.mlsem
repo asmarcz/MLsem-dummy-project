@@ -1,0 +1,16 @@
+val (+) : (int, int) -> int
+val (+) : (string, string) -> string
+
+val failwith : string -> empty
+
+val f : 'var -> any
+let f a =
+    if a is int then a + 1
+    else if a is string then a + "1"
+    else failwith "unexpected type"
+
+let g a =
+    match a with
+    | 0 -> failwith "zero"
+    | _ -> a
+    end

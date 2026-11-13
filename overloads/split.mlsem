@@ -1,0 +1,24 @@
+# errors_style = "both"
+(* #infer_overload = false *)
+
+(* val split : [int* bool*] -> ([int*], [bool*]) *)
+(* val split : [int* bool*] -> ([(int|bool)*], [int* bool*]) *)
+
+(* let split_ann (l : [int* bool*]) = split l *)
+
+(* val split : 'b & (('c & int)::x1) | 'a & (('c & int)::x1) -> ([ ('c & int)+ ], 'd) where x1 = 'b & (('c & int)::x1) | 'd & 'b & (('c::x1) | ((~int)::[ any* ]))
+val split : [ ('c & int)+ ] -> ([ ('c & int)+ ], [  ])
+val split : 'd & 'b & [ (~int) any* ] | 'd & 'a & ~[ ( int any* )? ] -> ([  ], 'd & 'b & [ (~int) any* ] | 'd & 'a & ~[ ( int any* )? ])
+val split : 'a & (('c & int)::('a & [ (~int) any* ])) -> ([ ('c & int) ], 'a)
+val split : 'a \ [ ( int any* )? ] -> ([  ], 'a \ [ ( int any* )? ])
+val split : 'a & (('c & int)::('a & [  ])) -> ([ ('c & int) ], [  ])
+val split : [  ] -> ([  ], [  ]) *)
+
+let split l =
+  match l with
+  | [] -> ([], [])
+  | (x & :int) :: rest -> let (a, b) = split rest in (x :: a, b)
+  | bs -> ([], bs)
+  end
+
+(* let exact l = split l *)

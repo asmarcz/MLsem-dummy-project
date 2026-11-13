@@ -1,0 +1,23 @@
+val (+) : (int, int) -> int
+
+val bla : ('a & int, 'a & int) -> 'a & int
+
+(* let inc(x) =
+    x + 1 *)
+
+(* val inc : 'a & int -> 'a & int *)
+val inc : 'a & int -> 1 | 'a & int
+let inc x =
+    bla x 1
+
+let y = inc 3
+
+
+(* 1 | 'a & int *)
+(* 'a & int *)
+(* 1 *)
+
+(* 1 | (1 | 3) & int *)
+(* 1 | (1 | 3) *)
+(* 1 | 1 | 3 *)
+(* 1 | 3 *)

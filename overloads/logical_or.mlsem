@@ -1,0 +1,71 @@
+type falsy = 0 | false | ()
+type truthy = ~falsy
+
+val logical_or : 'a & truthy -> any -> 'a & truthy
+val logical_or : 'a & falsy -> 'b -> 'b
+let logical_or x y =
+  if x is truthy
+    then x
+    else y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* mention what the language in discussion is - kinda confusing in the beginning *)
+(* authors are not really important *)
+(* plain explanation in the beginning *)
+(* figure *)
+(* Type IDE - tool for simplifying stts *)
+
+
+
+
+
+(* val logical_or : false -> 'a -> 'a
+val logical_or : true -> 'a -> true
+let logical_or a b = match a with | true -> true | false -> b end *)
+
+(* val logical_or : true -> any -> true
+val logical_or : ~true -> true -> true
+val logical_or : ~true -> ~true -> false
+let logical_or a b =
+  if a then true else (if b then true else false)
+
+(* val logical_or_2 : ~true -> 'a -> 'a *) *)
+val logical_or_2 : true -> 'a -> true
+let logical_or_2 a b =
+  if a then true else b
+
+(* val logical_or_3 : false -> bool -> bool
+val logical_or_3 : true -> any -> true *)
+
+
+(* val logical_or_3 : false -> 'a -> 'a
+val logical_or_3 : true -> 'a -> true
+val logical_or_3 : true -> any -> true *)
+
+(* let logical_or_3 a b =
+  match a with
+  | true -> true
+  | false -> b
+  end *)
+
+(* val logical_or_3 : bool -> bool -> bool
+val logical_or_3 : true -> any -> true *)

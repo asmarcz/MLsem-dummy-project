@@ -1,0 +1,8 @@
+val (+) : (int, int) -> int
+
+val f : int -> int
+val f : bool -> (bool, int)
+
+
+(* let f x = x + 1 *)
+(* let f x = (x, 1) *)

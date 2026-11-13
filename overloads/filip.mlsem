@@ -1,0 +1,81 @@
+val rand : () -> int
+val unreachable : () -> empty
+val eval : string -> any
+val failwith : string -> empty
+
+#infer_overload = false
+
+let func x =
+  match x with
+  | "str" -> "hi"
+  | "dbl" -> 42.0
+  | "int" -> 42
+  | "eval" -> eval x
+  | _ -> unreachable ()
+  end
+
+(* val a : empty
+let a = func 42 *)
+
+(* let ascii x =
+  match x with
+  | "a" -> 0
+  | "b" -> 1
+  | "c" -> 2
+  | "d" -> 3
+  | "e" -> 4
+  | "f" -> 5
+  | "g" -> 6
+  | "h" -> 7
+  | "i" -> 8
+  | "j" -> 9
+  | "k" -> 10
+  | "l" -> 11
+  | "m" -> 12
+  | "n" -> 13
+  | "o" -> 14
+  | "p" -> 15
+  | "q" -> 16
+  | "r" -> 17
+  | "s" -> 18
+  | "t" -> 19
+  | "u" -> 20
+  | "v" -> 21
+  | "w" -> 22
+  | "x" -> 23
+  | "y" -> 24
+  | "z" -> 25
+  end *)
+
+(* val ascii : string -> int *)
+val ascii : "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" -> (0..25)
+let ascii x =
+  match x with
+  | "a" -> 0
+  | "b" -> 1
+  | "c" -> 2
+  | "d" -> 3
+  | "e" -> 4
+  | "f" -> 5
+  | "g" -> 6
+  | "h" -> 7
+  | "i" -> 8
+  | "j" -> 9
+  | "k" -> 10
+  | "l" -> 11
+  | "m" -> 12
+  | "n" -> 13
+  | "o" -> 14
+  | "p" -> 15
+  | "q" -> 16
+  | "r" -> 17
+  | "s" -> 18
+  | "t" -> 19
+  | "u" -> 20
+  | "v" -> 21
+  | "w" -> 22
+  | "x" -> 23
+  | "y" -> 24
+  | "z" -> 25
+  (* | _ -> failwith "neni ASCII vole" *)
+  end

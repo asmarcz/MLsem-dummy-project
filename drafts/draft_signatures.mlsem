@@ -1,0 +1,67 @@
+(* Draft signatures: a [_] in a val type is a hole, a fresh weak type
+   variable. A val with a hole is not added to the environment when it is
+   read; its definition is checked against it, and the inferred type, with
+   the holes filled in, is added instead. *)
+
+val (+) : (int, int) -> int
+
+(* ===== Holes resolved from the body ===== *)
+
+(* expected: succ : int -> int *)
+val succ : _ -> int
+let succ x = x + 1
+
+(* expected: tag_true : int -> (int, true) *)
+val tag_true : int -> _
+let tag_true x = (x, true)
+
+(* Each _ is a different variable.
+   expected: pair : int -> bool -> (int, bool) *)
+val pair : _ -> _ -> (int, bool)
+let pair x y = (x + 1, y)
+
+(* A weak variable written by hand is a hole too, but the same name is the
+   same variable. expected: g : 'a -> 'a *)
+val g : '_a -> '_a
+let g x = x
+
+(* Overloads: if one line has a hole, the whole signature is a draft.
+   expected: f : (int -> int) & (bool -> true) *)
+val f : int -> int
+val f : bool -> _
+let f x = if x is int then x + 1 else true
+
+(* ===== Using drafts ===== *)
+
+(* After its definition, a draft is usable like any val. expected: int *)
+let use_succ = succ 41
+
+(* A complete val is still usable above its definition. expected: int *)
+let use_early = double 2
+val double : int -> int
+let double x = x + x
+
+(* Before its definition, a draft is not in the environment yet.
+   expected: too_early: unbound variable h *)
+let too_early = h 1
+val h : int -> _
+let h x = x
+
+(* ===== Not supported (yet) ===== *)
+
+(* Recursion: the body cannot call itself, its type is not in the
+   environment while the body is checked.
+   expected: len: unbound variable len *)
+val len : [any*] -> _
+let len l =
+  match l with
+  | [] -> 0
+  | _::xs -> 1 + len xs
+  end
+
+(* Mutable variables cannot have a draft signature. This error is reported
+   when the vals are read, before any definition, and stops the file, so it
+   is commented out.
+
+val mut m : _
+*)
