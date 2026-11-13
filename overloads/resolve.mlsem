@@ -55,3 +55,21 @@ let neg b = if b then false else true
 val sign : int -> int
 val sign : string -> string
 let sign x = x
+
+(* Curried: pick how many arguments make a case ("Arguments" next to
+   Apply). The overlap of pick is in the second argument:
+   - Arguments 1: the first arguments are the same, so the second overload
+     is unreachable;
+   - Arguments 2: the first overload becomes int -> int \ 1 -> int | bool. *)
+val pick : int -> int -> int | bool
+val pick : int -> 1 -> bool
+let pick x y = if y is 1 then true else y
+
+(* Both arguments overlap, so with Arguments 2 the first overload splits in
+   two val lines, one per product:
+     int \ (1 | 2) -> int -> int | bool      first arguments the other never takes
+     1 | 2 -> int \ 1 -> int | bool          shared ones, with the other second ones
+   With Arguments 1: int \ (1 | 2) -> int -> int | bool. *)
+val both : int -> int -> int | bool
+val both : 1 | 2 -> 1 -> bool
+let both x y = if x is 1 | 2 then (if y is 1 then true else y) else y
