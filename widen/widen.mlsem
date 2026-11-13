@@ -15,10 +15,10 @@ let g x = x
 val k : [ 1* ] -> { x : 3 ; y : "b"? }
 let k l = { x = 3 }
 
-(* Resolve overlap, after widening: Zero is excluded from the general case.
+(* Domain subtraction, after widening: Zero is excluded from the general case.
    1. Overload merging, Collapse One and Many: (One(int) | Many([int*])) -> 1 | 2
    2. Widen that domain to t
-   3. Overload merging, Resolve overlap: t \ Zero() -> 1 | 2 *)
+   3. Overload merging, Domain subtraction: t \ Zero() -> 1 | 2 *)
 type t = Zero() | One(int) | Many([int*])
 
 val size : Zero() -> 0
