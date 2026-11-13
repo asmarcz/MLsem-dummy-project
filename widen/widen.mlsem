@@ -1,0 +1,32 @@
+(* Widen tool: put the cursor in a definition; every part of its val lines
+   with a wider type gets an anchor. *)
+
+type digit = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+
+(* Literals: 42 to int, the tuple at once to (bool, string). *)
+val f : 42 -> (true, "a")
+let f x = (true, "a")
+
+(* A union of literals: digit, int. Its members nest under it. *)
+val g : 1 | 2 -> 1 | 2
+let g x = x
+
+(* Inside a list and a record. *)
+val k : [ 1* ] -> { x : 3 ; y : "b"? }
+let k l = { x = 3 }
+
+(* Resolve overlap, after widening: Zero is excluded from the general case.
+   1. Overload merging, Collapse One and Many: (One(int) | Many([int*])) -> 1 | 2
+   2. Widen that domain to t
+   3. Overload merging, Resolve overlap: t \ Zero() -> 1 | 2 *)
+type t = Zero() | One(int) | Many([int*])
+
+val size : Zero() -> 0
+val size : One(int) -> 1
+val size : Many([int*]) -> 2
+let size x =
+  match x with
+  | Zero() -> 0
+  | One(_) -> 1
+  | Many(_) -> 2
+  end
