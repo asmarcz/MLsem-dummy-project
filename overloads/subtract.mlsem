@@ -1,4 +1,4 @@
-(* Resolve overlap: in Overload merging, select overloads; each domain
+(* Domain subtraction: in Overload merging, select overloads; each domain
    becomes itself minus the domains of the overloads before it. A domain
    strictly inside another goes first, otherwise the order of the val lines. *)
 
