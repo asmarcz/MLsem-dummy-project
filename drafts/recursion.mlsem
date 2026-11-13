@@ -1,12 +1,14 @@
-(* Recursion and draft signatures. A draft enters the environment only once
-   its definition is typed, so nothing checked before or together with it can
-   call it, its own body included. *)
+(* Recursion and draft signatures. While a draft's body is checked, the
+   function sees itself at the draft type, with the holes shared by all the
+   recursive calls, as for a recursive function without val. The drafts of
+   a let ... and ... group are checked together, before the complete
+   signatures of the group, and enter the environment once resolved. *)
 
 val (+) : (int, int) -> int
 val (-) : (int, int) -> int
 val (=) : ('a, 'a) -> bool
 
-(* ===== Unchanged: recursion without drafts ===== *)
+(* ===== Recursion without drafts ===== *)
 
 (* Complete val: in the environment from the start.
    expected: len1 : [ any* ] -> int *)
@@ -17,22 +19,21 @@ let len1 l = match l with [] -> 0 | _::xs -> 1 + len1 xs end
    expected: len2 : ([ any+ ] -> int) & ([  ] -> 0) *)
 let len2 l = match l with [] -> 0 | _::xs -> 1 + len2 xs end
 
-(* ===== Drafts: not supported yet ===== *)
+(* ===== Recursive drafts ===== *)
 
-(* The recursive call does not see the draft.
-   expected: len3: unbound variable len3 *)
+(* The recursive call sees the draft.
+   expected: len3 : [ any* ] -> int *)
 val len3 : [any*] -> _
 let len3 l = match l with [] -> 0 | _::xs -> 1 + len3 xs end
 
 (* Mutual recursion: even (complete) calls odd (draft) in the same group.
-   The whole group fails, reported on even.
-   expected: even: unbound variable odd *)
+   expected: even : int -> bool, odd : int -> bool *)
 val even : int -> bool
 val odd : int -> _
 let even n = if n = 0 then true else odd (n - 1)
 and odd n = if n = 0 then false else even (n - 1)
 
-(* ===== Why a shared hole would be weaker than a complete val ===== *)
+(* ===== Why a shared hole is weaker than a complete val ===== *)
 
 (* With a complete val, each recursive call picks its own 'a: the inner
    calls use it at int and at bool.
@@ -44,22 +45,15 @@ let twice_id x =
   let b = twice_id true in
   x
 
-(* If recursive drafts are supported by sharing the hole with the recursive
-   calls (approach 2), the hole has one meaning in the whole body: with
-   val twice_id : _ -> _, the hole becomes int | bool | ..., and both calls
-   return that union.
+(* A hole has one meaning in the whole body, so both recursive calls use it
+   and it becomes 1 | true | ...
+   expected, with the val: twice_draft : 'a -> 1 | true | 'a
+   expected, without it (as now): twice_draft : 1 | true | 'a -> 1 | true | 'a
 
    The textbook case of calls that need ever-growing types, a nested type
    such as type nest('a) = Nil | Cons('a, nest(('a, 'a))), cannot be written
    in MLsem: recursive types must be regular ("Too many instantiations of
    type nest: is it a regular type?"). *)
-
-(* ===== Recursive drafts (branch draft-recursion) =====
-   The expected results below are for the draft-recursion branch. Without
-   it, every definition here fails with "unbound variable". *)
-
-(* The hole is shared by both recursive calls.
-   expected: twice_draft : 'a -> 1 | true | 'a *)
 (* val twice_draft : _ -> _ *)
 let twice_draft x =
   let a = twice_draft 1 in
@@ -73,6 +67,8 @@ let twice_mixed x =
   let a = twice_mixed 1 in
   let b = twice_mixed true in
   x
+
+(* ===== More recursive drafts ===== *)
 
 (* Overloaded draft.
    expected: len4 : ([ any+ ] -> int) & ([  ] -> 0) *)
@@ -104,3 +100,7 @@ val one : _
 val loop : int -> int
 let one = 1
 and loop n = if n = 0 then one else loop (n - 1)
+
+(* Drafts in separate lets cannot call each other: a draft enters the
+   environment only once its definition is typed. Write them as one
+   let ... and ... instead. *)

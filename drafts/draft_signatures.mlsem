@@ -47,17 +47,17 @@ let too_early = h 1
 val h : int -> _
 let h x = x
 
-(* ===== Not supported (yet) ===== *)
-
-(* Recursion: the body cannot call itself, its type is not in the
-   environment while the body is checked.
-   expected: len: unbound variable len *)
+(* Recursion: the body sees the draft, with its holes shared by the
+   recursive calls (more in recursion.mlsem).
+   expected: len : [ any* ] -> int *)
 val len : [any*] -> _
 let len l =
   match l with
   | [] -> 0
   | _::xs -> 1 + len xs
   end
+
+(* ===== Not supported ===== *)
 
 (* Mutable variables cannot have a draft signature. This error is reported
    when the vals are read, before any definition, and stops the file, so it

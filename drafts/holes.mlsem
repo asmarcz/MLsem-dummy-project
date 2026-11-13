@@ -3,7 +3,9 @@
    'a is fixed (kind KNoInfer): the val claims the definition works for every
    'a, and inference may not substitute it by something more specific. So the
    hack only works when the hole can become any, i.e. when the body does not
-   care what 'a is. *)
+   care what 'a is. Draft signatures, with _ or a weak variable as the hole,
+   are the actual feature: see the end of this file and
+   draft_signatures.mlsem. *)
 
 val (+) : (int, int) -> int
 
@@ -33,7 +35,7 @@ let len l =
   | _::xs -> 1 + len xs
   end
 
-(* ===== What works today instead: the hole as an annotation in the body ===== *)
+(* ===== Before draft signatures: the hole as an annotation in the body ===== *)
 
 (* Weak variables are allowed inside a definition: '_h is solved while the
    body is typed. Inferred: succ_ann : int -> int. *)
@@ -65,10 +67,11 @@ let succ_ann (x : '_h) = x + 1
 ## { int -> int <= 'h -> int }
 ## { int -> (int, true) <= int -> 'h }
 
-(* Rejected outright, kept last: a weak variable in a val is an
-   "Unresolved signature", because the val goes into the environment
-   before its definition is checked.
+(* ===== Draft signatures ===== *)
 
+(* A weak variable in a val is a hole of a draft signature: the val enters
+   the environment only once its definition is typed, with the hole
+   resolved. It used to be rejected as an "Unresolved signature".
+   expected: succ_weak : int -> int *)
 val succ_weak : '_h -> int
 let succ_weak x = x + 1
-*)
