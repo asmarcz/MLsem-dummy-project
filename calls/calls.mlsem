@@ -1,0 +1,21 @@
+(* Call-site tools. *)
+
+val (+) : (int, int) -> int
+
+(* Instantiate tool on sel: each overload lists the instances its calls use. *)
+val sel : int -> 'a -> 'a
+val sel : string -> 'a -> ('a, 'a)
+let sel b x = if b is int then x else (x, x)
+
+let s1 = sel 1 true
+let s2 = sel "a" 3
+let s3 = sel "b" 4
+
+(* Quick fixes on the failing calls: add an overload, or widen a domain. *)
+val inc : int -> int
+let inc x = x + 1
+
+let twice x = x + x
+
+let f1 = inc true
+let f2 = twice "a"
