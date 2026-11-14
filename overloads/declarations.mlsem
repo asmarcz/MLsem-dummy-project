@@ -1,0 +1,24 @@
+(* The toolkit's tools that only rewrite types (Overload merging, Domain
+   subtraction, Instantiate, Widen, Simplify) work from the val lines, so
+   they need neither a definition nor one that typechecks. *)
+
+type t = Zero() | One(int) | Many([int*])
+
+(* No definition: put the cursor on a val line. Overload merging lists both
+   overloads ("No definition"); Domain subtraction gives t \ Zero() -> 1 | 2;
+   Widen offers int for 1 | 2. The LLM tool has nothing to infer from. *)
+val ext : t -> 1 | 2
+val ext : Zero() -> 0
+
+(* A definition that does not typecheck: t -> (1..2) also claims Zero(),
+   for which the body gives 0. Overload merging still lists the overloads
+   ("does not typecheck"), and Domain subtraction fixes it:
+   t \ Zero() -> (1..2). *)
+val size : t -> (1..2)
+val size : Zero() -> 0
+let size x =
+  match x with
+  | Zero() -> 0
+  | One(_) -> 1
+  | Many(_) -> 2
+  end
