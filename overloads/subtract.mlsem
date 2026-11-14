@@ -73,3 +73,17 @@ let pick x y = if y is 1 then true else y
 val both : int -> int -> int | bool
 val both : 1 | 2 -> 1 -> bool
 let both x y = if x is 1 | 2 then (if y is 1 then true else y) else y
+
+(* Three arguments: Arguments goes up to 3. The more arguments make a case,
+   the more val lines the general overload splits into, one per argument
+   where it can differ from the special case:
+   - Arguments 1: int \ 1 -> int -> int -> int | bool
+   - Arguments 2: int \ 1 -> int -> int -> int | bool
+                  1 -> int \ 2 -> int -> int | bool
+   - Arguments 3: int \ 1 -> int -> int -> int | bool
+                  1 -> int \ 2 -> int -> int | bool
+                  1 -> 2 -> int \ 3 -> int | bool *)
+val three : int -> int -> int -> int | bool
+val three : 1 -> 2 -> 3 -> bool
+let three x y z =
+  if x is 1 then (if y is 2 then (if z is 3 then true else z) else z) else z
