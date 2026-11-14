@@ -74,16 +74,28 @@ val both : int -> int -> int | bool
 val both : 1 | 2 -> 1 -> bool
 let both x y = if x is 1 | 2 then (if y is 1 then true else y) else y
 
-(* Three arguments: Arguments goes up to 3. The more arguments make a case,
-   the more val lines the general overload splits into, one per argument
-   where it can differ from the special case:
-   - Arguments 1: int \ 1 -> int -> int -> int | bool
-   - Arguments 2: int \ 1 -> int -> int -> int | bool
-                  1 -> int \ 2 -> int -> int | bool
-   - Arguments 3: int \ 1 -> int -> int -> int | bool
-                  1 -> int \ 2 -> int -> int | bool
-                  1 -> 2 -> int \ 3 -> int | bool *)
-val three : int -> int -> int -> int | bool
+(* Three arguments, failing: each val line is checked on its own, and
+   int -> int -> int -> int also covers three 1 2 3, which gives true.
+   Domain subtraction with Arguments 3 makes it typecheck, the general
+   overload split in one line per argument where it can differ from the
+   special case:
+     int \ 1 -> int -> int -> int
+     1 -> int \ 2 -> int -> int
+     1 -> 2 -> int \ 3 -> int
+   Arguments 1 or 2 typecheck too, but cover fewer calls: they subtract all
+   of 1 (or 1, 2) from the general case, so with 2, three 1 2 4 matches no
+   line any more. *)
+val three : int -> int -> int -> int
 val three : 1 -> 2 -> 3 -> bool
 let three x y z =
+  if x is 1 then (if y is 2 then (if z is 3 then true else z) else z) else z
+
+(* The same, typechecking with a wider result: int | bool. To get to the
+   specialized types:
+   1. Domain subtraction, Arguments 3: as above, each still -> int | bool;
+   2. write _ in place of each int | bool, so that the body gives them;
+   3. Draft holes, Fill all: int, int, and int \ 3 (on its line, z is not 3). *)
+val three_wide : int -> int -> int -> int | bool
+val three_wide : 1 -> 2 -> 3 -> bool
+let three_wide x y z =
   if x is 1 then (if y is 2 then (if z is 3 then true else z) else z) else z
