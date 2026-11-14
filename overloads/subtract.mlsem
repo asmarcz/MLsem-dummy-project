@@ -93,7 +93,8 @@ let three x y z =
 (* The same, typechecking with a wider result: int | bool. To get to the
    specialized types:
    1. Domain subtraction, Arguments 3: as above, each still -> int | bool;
-   2. write _ in place of each int | bool, so that the body gives them;
+   2. Widen each int | bool to _ (the last option, "hole"), so that the body
+      gives them;
    3. Draft holes, Fill all: int, int, and int \ 3 (on its line, z is not 3). *)
 val three_wide : int -> int -> int -> int | bool
 val three_wide : 1 -> 2 -> 3 -> bool
