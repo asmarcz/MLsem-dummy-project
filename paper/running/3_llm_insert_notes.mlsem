@@ -1,0 +1,91 @@
+(* Scenario 3, LLM-assisted: notes for 3_llm_insert.mlsem.
+
+   That file is what the LLM is sent, whole: two operators, the tree type
+   and insert, with no comment and no call site. Keep it that way; this
+   file holds the explanations.
+
+   The problem. Without a val line, typechecking 3_llm_insert.mlsem stops
+   at the language server's default limit:
+
+     Typechecking timed out after 10 s
+
+   (The native checker needs about 14 s for this file; it infers an
+   intersection of 5 arrows with 8 type variables and 6 where definitions,
+   about 1600 characters.) The same file checks in about 0.01 s once
+   insert has a val line.
+
+   Running it. Cursor in insert, "MLsem: Infer type with LLM" (editor title
+   bar), or the LLM inference section of "MLsem: Type toolkit…". Besides
+   the file, the prompt says: "Typechecking this file as it is does not
+   succeed: Typechecking timed out after 10 s. It is not known in which
+   definition." Each answer is checked with the server's signature check;
+   a rejected one goes back to the LLM with its errors.
+
+   Plausible answers, as the signature check judges them (each check takes
+   0.01 to 0.02 s), and how the toolkit improves them. All steps below were
+   replayed on 3_llm_insert.mlsem with the answer written above insert.
+
+   A. The expected answer: accepted.
+        val insert : tree('a) -> int -> 'a -> tree('a)
+
+   B. Correct but monomorphic: accepted.
+        val insert : tree(int) -> int -> int -> tree(int)
+      Improve it as in scenario 2. Widen: pick _ for the int inside the
+      first tree(int), for the value int and for the int inside the result
+      tree(int); Apply:
+        val insert : tree(_) -> int -> _ -> tree(_)
+      Draft holes: Fill all:
+        val insert : tree('b) -> int -> 'a -> tree('b | 'a)
+      An answer with any in those three places,
+        val insert : tree(any) -> int -> any -> tree(any)
+      is accepted too and goes the same way (Widen offers _ for any).
+
+   C. Over-general: the key polymorphic. Rejected:
+        val insert : tree('a) -> 'k -> 'a -> tree('a)
+      at `k`: untypeable coercion:
+      expected: int
+      given: 'k
+      The error goes back to the LLM. If it is written in the file instead,
+      Widen: pick _ for 'k, Apply:
+        val insert : tree('a) -> _ -> 'a -> tree('a)
+      Draft holes shows int; Fill all:
+        val insert : tree('a) -> int -> 'a -> tree('a)
+
+   C'. Over-general: a second variable for the value. Rejected:
+        val insert : tree('a) -> int -> 'b -> tree('a)
+      at `v`: untypeable coercion:
+      expected: 'a
+      given: 'b
+      Widen: pick _ for 'b, Apply, then Draft holes: Fill all gives
+        val insert : tree('a) -> int -> 'a -> tree('a)
+      (Picking _ for the result tree('a) instead does not work: the hole
+      shows Node(), and Fill all writes a line that fails to check.)
+
+   D. Two lines, the empty tree spelled out: accepted.
+        val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
+        val insert : tree('a) -> int -> 'a -> tree('a)
+      Overload merging, both lines selected:
+      - Collapse: Apply gives val insert : tree('a) -> int -> 'a -> tree('a)
+      - Domain subtraction: Apply makes the cases disjoint:
+          val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
+          val insert : tree('a) \ Leaf -> int -> 'a -> tree('a)
+
+   E. The most general answer: accepted. It is what B reaches.
+        val insert : tree('a) -> int -> 'b -> tree('a | 'b)
+
+   Not a val line at all: OCaml syntax is rejected with a confusing error.
+        val insert : 'a tree -> int -> 'a -> 'a tree
+      at `'a tree`: unexpected regular expression
+
+   Actual run, 2026-11-15, claude-haiku-5-5 through the extension's own
+   logic (2 requests):
+     try 1, rejected:
+        val insert : (tree('a), int, 'a) -> tree('a)
+      at `t`: untypeable cast: expected: empty, given: tree('a), int, 'a
+     try 2, accepted (answer A):
+        val insert : tree('a) -> int -> 'a -> tree('a)
+   Haiku first wrote one tuple argument for the curried function; the
+   checker's error was enough for it to correct itself. From answer A, the
+   steps of 2_bottom_up_insert.mlsem (Widen the three element types to _,
+   Fill all) give the more general tree('b) -> int -> 'a -> tree('b | 'a).
+*)

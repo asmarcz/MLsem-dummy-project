@@ -1,0 +1,46 @@
+(* Scenario 3, LLM-assisted: partition (notes for llm_partition.mlsem).
+
+   llm_partition.mlsem holds only the code the LLM sees: partition splits a
+   list into its ints and the rest, as one would in Python or JavaScript.
+   Without a val line, inference does not finish: native.exe was still
+   running when stopped after 400 s (and after 40 s in an earlier run).
+   The language server reports, at its default limit,
+     Typechecking timed out after 10 s
+   as a diagnostic on line 1 and as a pop-up. There is no lens, and the
+   toolkit tools that need the typecheck have nothing to show
+   (definitionStatus: failed); the signature check still works.
+
+   Step 1. MLsem: Infer type with LLM (editor title bar, or Infer type of
+   partition in the toolkit). Each answer is checked with the signature
+   check request; all the answers below check at once (under 0.1 s):
+     val partition : [ any* ] -> ([ int* ], [ any* ])
+     val partition : [ any* ] -> ([ int* ], [ (~int)* ])
+     val partition : [ 'a* ] -> ([ ('a & int)* ], [ ('a \ int)* ])
+
+   Step 2, if the answer is the first, coarse one (the second list may
+   hold ints, as far as the type says):
+     a. Widen: click under the `any` of the second list (the last `any` of
+        the line), pick _ (hole), Apply:
+          val partition : [ any* ] -> ([ int* ], [ _* ])
+     b. Draft holes: the hole is ~int. Fill.
+        BUG met here: Fill (and the quick action "Replace _ with ~int")
+        writes the value without parentheses:
+          val partition : [ any* ] -> ([ int* ], [ ~int* ])
+        which does not parse ("unexpected regular expression"). Add them
+        by hand:
+          val partition : [ any* ] -> ([ int* ], [ (~int)* ])
+
+   Final state: one of the last two lines above. With a hole in each list,
+   `[ 'a* ] -> ([ _* ], [ _* ])`, the holes are 'a & int and 'a \ int, which
+   gives the polymorphic one (same parenthesis bug).
+
+   Also seen: Widen the whole result to a hole and Fill gives an exact but
+   bulky type,
+     ([ int* ], [ (~int)+ ]) | ([ int+ ], [ (~int)* ]) | ([  ], [  ])
+   and no tool turns that union of pairs back into one pair.
+
+   Actual runs, 2026-11-15, through the extension's own logic (1 request
+   each): claude-haiku-5-5 and claude-sonnet-5-5 both gave, accepted on the
+   first try,
+     val partition : [ 'a* ] -> ([ ('a & int)* ], [ ('a \ int)* ])
+   so here the LLM leaves nothing for the toolkit to improve. *)

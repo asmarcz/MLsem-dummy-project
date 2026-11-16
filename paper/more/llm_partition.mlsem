@@ -1,0 +1,7 @@
+let partition l =
+  match l with
+  | [] -> ([], [])
+  | x :: rest ->
+    let (a, b) = partition rest in
+    if x is int then (x :: a, b) else (a, x :: b)
+  end

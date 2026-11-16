@@ -1,0 +1,49 @@
+(* Scenario 2, bottom to top: greeting, over user records (objects).
+
+   greeting was typed for users with a name and an email. It was then
+   extended to use an optional title, and a call passes a user with one.
+   Records are closed by default, so the declared type rejects the extra
+   field, and the editor marks the title branch as unreachable code.
+
+   Steps (open MLsem: Type toolkit... with the cursor on greeting):
+
+   1. Ctrl+. on the failing call `greeting { name = "Hopper" ; ... }`,
+      Widen domain:
+        val greeting : { name : string; email : string } | { name : "Hopper"; email : "grace@navy.mil"; title : "Dr" } -> _
+
+   2. Widen: click under the whole domain (the union of the two records)
+      and pick its first option, which widens the three literals at once;
+      Apply:
+        val greeting : { name : string; email : string } | { name : string; email : string; title : string } -> _
+
+   3. Draft holes: the hole is string; Fill all:
+        val greeting : { name : string; email : string } | { name : string; email : string; title : string } -> string
+
+   4. Extract repeated parts: click the part { name : string; email : string }
+      (it occurs twice, and is offered as a top-level type), name it user,
+      apply:
+        type user = { name : string; email : string }
+
+        val greeting : user | { user with title : string } -> string
+
+   Final state (no errors; ada : string, hopper : string):
+
+   type user = { name : string; email : string }
+
+   val greeting : user | { user with title : string } -> string
+   let greeting u = ...
+
+   The quick action keeps the old domain and adds the new one, so no call
+   that worked breaks. Widen turns the literals of the call into field
+   types, and Extract names the shared part: the type now reads "a user,
+   possibly with a title". *)
+
+val (^) : (string, string) -> string
+
+val greeting : { name : string ; email : string } -> string
+let greeting u =
+  let who = if u is { title : string ..} then u.title ^ " " ^ u.name else u.name in
+  "Dear " ^ who ^ " <" ^ u.email ^ ">"
+
+let ada = greeting { name = "Ada" ; email = "ada@ox.ac.uk" }
+let hopper = greeting { name = "Hopper" ; email = "grace@navy.mil" ; title = "Dr" }

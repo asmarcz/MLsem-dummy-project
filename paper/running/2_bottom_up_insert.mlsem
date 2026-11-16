@@ -1,0 +1,71 @@
+(* Scenario 2, bottom to top: from a naive type to a general one.
+
+   insert t k v adds key k with value v to the tree t (replacing the value
+   of k if it is there). Without a val line its type inference takes more
+   than the language server's 10 s limit (see scenario 3), so the author
+   wrote the type for the first use, a map from ints to ages:
+
+     val insert : tree(int) -> int -> int -> tree(int)
+
+   A new call site stores names: the call in "let names" is an error,
+
+     untypeable application:
+     function: tree(int) -> int -> int -> tree(int)
+     argument: tree(string)
+
+   Steps (each checks: no error in the file afterwards).
+
+   1. "MLsem: Type toolkit…", section Widen. Under the val line, click the
+      int inside the first tree(int), the int of the value (third
+      argument), and the int inside the result tree(int); for each pick
+      the hole _ (the last option). Apply:
+
+        val insert : tree(_) -> int -> _ -> tree(_)
+
+      The line is now a draft: its holes are inferred from the body.
+      The error on "let names" is gone.
+
+   2. Section Draft holes shows the holes filled:
+      tree('b) -> int -> 'a -> tree('b | 'a). Click Fill all:
+
+        val insert : tree('b) -> int -> 'a -> tree('b | 'a)
+
+      More general than the expected tree('a) -> int -> 'a -> tree('a):
+      inserting a value of another type gives a tree of the union.
+      Type variable instantiation lists what each call uses:
+        insert (insert Leaf 1 37) 2 41:  'a = 41,    'b = 37
+        insert Leaf 1 37:                'a = 37,    'b = empty
+        insert phone_book 2 "Bob":       'a = "Bob", 'b = string
+
+   (The quick fixes on the failing call, Ctrl+. on it, are "Add overload:
+   val insert : tree(string) -> _" and "Widen domain: val insert :
+   tree(int) | tree(string) -> _". For this curried function both lead
+   nowhere: the first hole fills with a screen-sized type that then fails
+   to check, the second makes the file time out.)
+
+   Final state:
+
+     val insert : tree('b) -> int -> 'a -> tree('b | 'a)
+     let insert t k v = ...
+*)
+
+val (=) : ('a, 'a) -> bool
+val (<) : (int, int) -> bool
+
+type tree('a) = Leaf | Node(tree('a), int, 'a, tree('a))
+
+val insert : tree(int) -> int -> int -> tree(int)
+let insert t k v =
+  match t with
+  | Leaf -> Node(Leaf, k, v, Leaf)
+  | Node(l, k', v', r) ->
+    if k = k' then Node(l, k, v, r)
+    else if k < k' then Node(insert l k v, k', v', r)
+    else Node(l, k', v', insert r k v)
+  end
+
+let ages = insert (insert Leaf 1 37) 2 41
+
+val phone_book : tree(string)
+let phone_book = Node(Leaf, 1, "Alice", Leaf)
+let names = insert phone_book 2 "Bob"

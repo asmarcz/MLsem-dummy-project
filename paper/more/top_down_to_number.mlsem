@@ -1,0 +1,55 @@
+(* Scenario 1, top to bottom: to_number, JavaScript's Number(x).
+
+   The inferred type is exact, so it also shows how the code works inside:
+   the shortcut for "", the literal results 0 and 1, and a type variable
+   'a on every line, though only the int line needs it. What callers need
+   to know is less: an int comes back unchanged, and bools, strings and
+   unit become some int.
+
+   Steps (open MLsem: Type toolkit... with the cursor on to_number):
+
+   1. Ctrl+. on `let to_number`, Inline inferred type:
+        val to_number : 'a & (false | "" | ()) -> 0
+        val to_number : 'a & int -> 'a & int
+        val to_number : 'a & string \ "" -> int
+        val to_number : 'a & true -> 1
+
+   2. Simplify: on lines 1, 3 and 4, click the whole type and pick
+      "unused variables dropped", then Apply:
+        val to_number : false | "" | () -> 0
+        val to_number : 'a & int -> 'a & int
+        val to_number : string \ "" -> int
+        val to_number : true -> 1
+
+   3. Overload merging: tick lines 1, 3 and 4 (those without 'a). Collapse
+      previews `bool | string | () -> int`; click its Apply (replaces the
+      ticked lines, keeps the int line):
+        val to_number : bool | string | () -> int
+        val to_number : 'a & int -> 'a & int
+
+   Final state (no errors; port : int):
+
+   val to_number : bool | string | () -> int
+   val to_number : 'a & int -> 'a & int
+   let to_number x = ...
+
+   By hand it is easy to drop the 'a from the int line as well, to forget
+   the () case, or to merge all four lines (Collapse on all four gives
+   'a & (int | bool | string | ()) -> int) and lose the fact that an int
+   comes back unchanged. Simplify drops 'a only where it is unused, and
+   Collapse merges only the ticked lines, into a type that still holds. *)
+
+val (+) : (int, int) -> int
+val parse_int : string -> int
+
+let to_number x =
+  match x with
+  | :int -> x
+  | true -> 1
+  | false -> 0
+  | "" -> 0
+  | :string -> parse_int x
+  | () -> 0
+  end
+
+let port = to_number "8080" + 1

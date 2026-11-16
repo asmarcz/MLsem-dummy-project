@@ -1,0 +1,57 @@
+(* Scenario 3, LLM-assisted: flatten (notes for llm_flatten.mlsem).
+
+   llm_flatten.mlsem holds only the code the LLM sees: a deep flatten of
+   nested lists, like lodash's flattenDeep. Without a val line, native.exe
+   infers a type in 12 to 13 s (11.9 s and 13.2 s in two runs), so the
+   language server reports, at its default limit,
+     Typechecking timed out after 10 s
+   as a diagnostic on line 1 and as a pop-up. The inferred type, for the
+   record, is five overloads over two recursive where types: unreadable.
+   Close to the limit: on a faster machine it may pass; llm_partition is
+   the safer example.
+
+   Step 1. MLsem: Infer type with LLM. All these answers check at once
+   (under 0.1 s):
+     val flatten : [ any* ] -> [ any* ]
+     val flatten : [ any* ] -> [ (~[ any* ])* ]
+     val flatten : x -> [ 'a* ] where x = [ ('a \ [ any* ] | x)* ]
+   A tempting wrong answer is rejected, and the error goes back to the LLM:
+     val flatten : x -> [ 'a* ] where x = [ ('a | x)* ]
+     at `flatten x @ flatten y`: untypeable coercion:
+     expected: [ 'a* ]
+     given: [ (~[ any* ])* (('a \ [ x1* ] | 'I95)+)? ] where x1 = ...
+   (the element type 'a may itself be a list, which flatten would open).
+
+   Step 2, if the answer is the first, coarse one (it does not say that
+   the result is flat):
+     a. Widen: click under the result [ any* ] (the second one), pick _
+        (hole), Apply:
+          val flatten : [ any* ] -> _
+     b. Draft holes: the hole is [ (~[ any* ])* ] (found in about 1 s);
+        Fill:
+          val flatten : [ any* ] -> [ (~[ any* ])* ]
+
+   Final state:
+
+   val flatten : [ any* ] -> [ (~[ any* ])* ]
+   let flatten l = ...
+
+   "a list of anything gives a list without lists". With the domain from
+   the third answer, the draft `x -> _ where x = [ ('a \ [ any* ] | x)* ]`
+   fills to [ ('a \ [ any* ])* ].
+
+   Actual runs, 2026-11-15, through the extension's own logic.
+
+   claude-haiku-5-5, 3 requests, no answer accepted:
+     try 1:  val flatten : [ ('a | [ 'a* ])* ] -> [ 'a* ]
+     try 2:  val flatten : ['a*] -> ['a*]
+     try 3:  val flatten : [ ('a \ [ any* ] | [ 'a* ])* ] -> [ 'a* ]
+   each rejected at `flatten x @ flatten y` (expected [ 'a* ], given
+   [ any* ] for tries 2 and 3). Tries 1 and 3 describe one level of
+   nesting only; none is recursive.
+
+   claude-sonnet-5-5, 1 request, accepted:
+     val flatten : [ any* ] -> [ (any \ [ any* ])* ]
+   This is the second answer of step 1: correct, but it forgets the
+   element types. Getting from it to the polymorphic third answer is not
+   covered by a tool: the recursive domain has to be written by hand. *)

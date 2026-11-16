@@ -1,0 +1,13 @@
+val (=) : ('a, 'a) -> bool
+val (<) : (int, int) -> bool
+
+type tree('a) = Leaf | Node(tree('a), int, 'a, tree('a))
+
+let insert t k v =
+  match t with
+  | Leaf -> Node(Leaf, k, v, Leaf)
+  | Node(l, k', v', r) ->
+    if k = k' then Node(l, k, v, r)
+    else if k < k' then Node(insert l k v, k', v', r)
+    else Node(l, k', v', insert r k v)
+  end

@@ -1,0 +1,8 @@
+val (@) : (['a*], ['b*]) -> ['a* 'b*]
+
+let flatten l =
+  match l with
+  | [] -> []
+  | (x & :list)::y -> flatten x @ flatten y
+  | x::y -> x::flatten y
+  end

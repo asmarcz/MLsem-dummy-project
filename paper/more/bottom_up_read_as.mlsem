@@ -1,0 +1,57 @@
+(* Scenario 2, bottom to top: read_as, a config reader whose result type
+   depends on a mode string (Python's typing.overload with Literal).
+
+   The hand-written type lists the three modes and the three result types,
+   but does not say which mode gives which result. So `read_as "int" ...`
+   is an int | bool | string, and the new call `... + 1` fails. There is no
+   quick action: the call that fails is the one to +, not to read_as.
+
+   Steps (open MLsem: Type toolkit... with the cursor on read_as):
+
+   1. Widen: pick _ (hole) under the domain "int" | "bool" | "string", and
+      _ under the rest of the type, string -> int | bool | string; Apply:
+        val read_as : _ -> _
+
+   2. Draft holes: the line has three rows, one per overload of the body:
+        "string"  'a -> 'a
+        "bool"    string -> bool
+        "int"     string -> int
+      Click Fill all and split:
+        val read_as : "string" -> 'a -> 'a
+        val read_as : "bool" -> string -> bool
+        val read_as : "int" -> string -> int
+
+   3. Type variable instantiation: under the first line, the call
+      `read_as "string" (env "USER")` uses 'a = string. Pin 'a to string
+      and apply:
+        val read_as : "string" -> string -> string
+        val read_as : "bool" -> string -> bool
+        val read_as : "int" -> string -> int
+
+   Final state (no errors; port : int, user : string):
+
+   val read_as : "string" -> string -> string
+   val read_as : "bool" -> string -> bool
+   val read_as : "int" -> string -> int
+   let read_as kind s = ...
+
+   Holes must replace the domain too: with `_ -> string -> _` the rows are
+   "string", "int" | "string", "bool" and "int" | "bool" (no row for "int"
+   alone), and with `"int" | "bool" | "string" -> _` there is one row, the
+   union again. *)
+
+val (+) : (int, int) -> int
+val (=) : (string, string) -> bool
+val parse_int : string -> int
+val env : string -> string
+
+val read_as : "int" | "bool" | "string" -> string -> int | bool | string
+let read_as kind s =
+  match kind with
+  | "int" -> parse_int s
+  | "bool" -> s = "true"
+  | "string" -> s
+  end
+
+let port = read_as "int" (env "PORT") + 1
+let user = read_as "string" (env "USER")

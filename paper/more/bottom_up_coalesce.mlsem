@@ -1,0 +1,57 @@
+(* Scenario 2, bottom to top: coalesce, JavaScript's x ?? fallback.
+
+   coalesce was written for a port number, so its type mentions int. A new
+   call for the host name passes strings and fails. The fix should not be
+   "int or string": the result must stay of the type of the arguments, or
+   `port + 1` and `host ^ ":"` break.
+
+   Steps (open MLsem: Type toolkit... with the cursor on coalesce):
+
+   1. Ctrl+. on the failing call `coalesce (env "HOST", "localhost")`,
+      Add overload:
+        val coalesce : (int | Nil, int) -> int
+        val coalesce : (Nil | string, "localhost") -> _
+
+   2. Widen: click under "localhost", pick string, Apply:
+        val coalesce : (Nil | string, string) -> _
+
+   3. Draft holes: the hole is string; Fill all:
+        val coalesce : (Nil | string, string) -> string
+
+   4. Overload merging: tick both lines.
+      Collapse would give
+        val coalesce : (Nil | string, string) | (Nil | int, int) -> int | string
+      and then both `port + 1` and `host ^ ":"` fail (int | string).
+      Generalize gives, marked stronger and checked against the definition:
+        val coalesce : (Nil | 'a & (Nil | int | string), 'a & (int | string)) -> 'a & (int | string)
+      Click its Replace.
+
+   5. Widen: the bounds of 'a are only the two types seen so far. Pick any
+      under the three parts (Nil | int | string), (int | string),
+      (int | string); Apply:
+        val coalesce : (Nil | 'a & any, 'a & any) -> 'a & any
+
+   6. Simplify: click the whole type, pick (Nil | 'a, 'a) -> 'a, Apply.
+
+   Type variable instantiation now lists, under the line, the instances
+   from the calls: 'a = int (the port call) and 'a = string (the host call).
+
+   Final state (no errors; port : int, host : string):
+
+   val coalesce : (Nil | 'a, 'a) -> 'a
+   let coalesce (x, fallback) = ...
+
+   By hand, the tempting fix is the Collapse one, or `(Nil | int | string,
+   int | string) -> int | string`: both lose the link between the fallback
+   and the result. *)
+
+val (+) : (int, int) -> int
+val (^) : (string, string) -> string
+val env : string -> string | Nil
+val parse_int : string -> int | Nil
+
+val coalesce : (int | Nil, int) -> int
+let coalesce (x, fallback) = if x is Nil then fallback else x
+
+let port = coalesce (parse_int "8081", 8080) + 1
+let host = coalesce (env "HOST", "localhost") ^ ":"

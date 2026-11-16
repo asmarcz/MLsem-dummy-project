@@ -1,0 +1,71 @@
+(* Scenario 1, top to bottom: from the inferred type to the intended one.
+
+   find looks a key up in a binary search tree used as a map; it gives Nil
+   when the key is missing. The tree comes first (find t k), as in
+   Map.find m k.
+
+   Without a val line, MLsem infers (code lens above find):
+
+     find : ∀'a. (Node(x1) -> int -> Nil | 'a) & (Leaf -> any -> Nil)
+            where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+
+   It is exact, but it shows the internals: two cases, and on an empty tree
+   the key may be anything, not only an int. The intent is
+   tree('a) -> int -> 'a | Nil.
+
+   Steps (each checks: no error in the file afterwards).
+
+   1. Ctrl+. on "let find", quick action "Inline inferred type". It writes
+      one val line per overload:
+
+        val find : Node(x1) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+        val find : Leaf -> any -> Nil
+
+   2. "MLsem: Type toolkit…", section Overload merging: select both lines.
+      The Collapse preview is the smallest single arrow containing them;
+      click Apply under Collapse:
+
+        val find : Leaf | Node(x1) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+
+      The domain became Leaf | Node(x1) (the whole tree), and the key int:
+      the Leaf case (any key, result Nil) is inside the Node case.
+      (Generalize on the same two lines gives a union of the two arrows,
+      marked weaker; once written, the call to find below no longer types.)
+
+   3. Section Simplify: click under the whole type, pick the option
+      labelled "any step", Apply:
+
+        val find : x1 -> int -> Nil | 'a where x1 = Leaf | Node(x1, int, 'a, x1)
+
+      One where definition instead of a tuple and a union around it.
+
+   4. By hand: x1 is tree('a), which no tool writes yet (Simplify and the
+      printer only use the name tree when tree('a) is already in the line).
+
+        val find : tree('a) -> int -> Nil | 'a
+
+   Under the line, Type variable instantiation shows the instance the call
+   below uses after every step: 'a = "Alice" | "Bob" for find phone_book 2.
+
+   Final state:
+
+     val find : tree('a) -> int -> Nil | 'a
+     let find t k = ...
+*)
+
+val (=) : ('a, 'a) -> bool
+val (<) : (int, int) -> bool
+
+type tree('a) = Leaf | Node(tree('a), int, 'a, tree('a))
+
+let find t k =
+  match t with
+  | Leaf -> Nil
+  | Node(l, k', v, r) ->
+    if k = k' then v
+    else if k < k' then find l k
+    else find r k
+  end
+
+let phone_book = Node(Node(Leaf, 1, "Alice", Leaf), 2, "Bob", Leaf)
+let bob = find phone_book 2
