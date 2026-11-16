@@ -9,9 +9,13 @@
      find : ∀'a. (Node(x1) -> int -> Nil | 'a) & (Leaf -> any -> Nil)
             where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
 
-   It is exact, but it shows the internals: two cases, and on an empty tree
-   the key may be anything, not only an int. The intent is
-   tree('a) -> int -> 'a | Nil.
+   It is exact, but it shows the internals: the structure of the tree is
+   spelled out instead of the declared type tree('a), and there are two
+   cases (on an empty tree the key may be anything, not only an int). The
+   intent is tree('a) -> int -> Nil | 'a.
+
+   Operations used: Inline inferred type, Widen (as in scenarios 2 and 3),
+   Overload merging: Collapse.
 
    Steps (each checks: no error in the file afterwards).
 
@@ -21,36 +25,43 @@
         val find : Node(x1) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
         val find : Leaf -> any -> Nil
 
-   2. "MLsem: Type toolkit…", section Overload merging: select both lines.
-      The Collapse preview is the smallest single arrow containing them;
-      click Apply under Collapse:
+   2. "MLsem: Type toolkit…", section Widen. On the first line, click under
+      Node(x1) (the first argument) and pick tree('a), then Apply:
 
-        val find : Leaf | Node(x1) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+        val find : tree('a) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+        val find : Leaf -> any -> Nil
 
-      The domain became Leaf | Node(x1) (the whole tree), and the key int:
-      the Leaf case (any key, result Nil) is inside the Node case.
-      (Generalize on the same two lines gives a union of the two arrows,
-      marked weaker; once written, the call to find below no longer types.)
+      Widen recognises the declared type and finds its argument 'a (the
+      tightest tree(...) that contains Node(x1)). tree('a) is wider than
+      Node(x1): it also admits Leaf. The where definition is no longer
+      used (the code lens already leaves it out); the next step drops it.
 
-   3. Section Simplify: click under the whole type, pick the option
-      labelled "any step", Apply:
-
-        val find : x1 -> int -> Nil | 'a where x1 = Leaf | Node(x1, int, 'a, x1)
-
-      One where definition instead of a tuple and a union around it.
-
-   4. By hand: x1 is tree('a), which no tool writes yet (Simplify and the
-      printer only use the name tree when tree('a) is already in the line).
+   3. Section Overload merging: select both lines. The Collapse preview is
+      the smallest single arrow containing them; click Apply under Collapse:
 
         val find : tree('a) -> int -> Nil | 'a
 
-   Under the line, Type variable instantiation shows the instance the call
-   below uses after every step: 'a = "Alice" | "Bob" for find phone_book 2.
+      The Leaf case (any key, result Nil) is inside the first line, once the
+      key is an int: Collapse keeps what both lines promise for an int key.
+      (Generalize on the same two lines offers tree('a) -> any -> Nil | 'a,
+      marked stronger, but its check fails at k < k': the key must be an
+      int. Collapse always holds.)
 
    Final state:
 
      val find : tree('a) -> int -> Nil | 'a
      let find t k = ...
+
+   Alternative: with call sites. Under each line, section Type variable
+   instantiation shows the instance that the call below uses, after every
+   step: 'a = "Alice" | "Bob" for find phone_book 2. Setting 'a to string
+   there and Apply specialises find to the phone book, but writes the
+   structure again instead of the name:
+
+     val find : x1 -> int -> Nil | string where x1 = Leaf | Node(x1, int, string, x1)
+
+   (Simplify then offers tree(string) for x1, "declared type", and after
+   that the whole type without the unused where, "any step".)
 *)
 
 val (=) : ('a, 'a) -> bool
