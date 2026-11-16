@@ -58,8 +58,11 @@
       given: 'b
       Widen: pick _ for 'b, Apply, then Draft holes: Fill all gives
         val insert : tree('a) -> int -> 'a -> tree('a)
-      (Picking _ for the result tree('a) instead does not work: the hole
-      shows Node(), and Fill all writes a line that fails to check.)
+      (Picking _ for the result tree('a) instead is no help: the check
+      takes about 2.7 s, and the hole is exact but unreadable,
+        x2 where x1 = Leaf | Node(x1, int, 'a, x1)
+             and x2 = Node((x1, int, 'b, x1) | (x1, int, 'a, x2) | (x2, int, 'a, x1))
+      Fill all writes a line that checks.)
 
    D. Two lines, the empty tree spelled out: accepted.
         val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
