@@ -1,112 +1,46 @@
-(* Scenario 2, bottom to top: from a naive type to a more precise one.
+(* Scenario 2, bottom to top: insert.
 
-   insert t k v adds key k with value v to the tree t (replacing the value
-   of k if it is there). Without a val line its type inference takes more
-   than the language server's 10 s limit (see scenario 3), so the author
-   wrote the type the phone book needs:
+   insert t k v adds key k with value v to the tree t. Its inference takes
+   longer than the server's 10 s limit (scenario 3), so the author wrote
+   the type the phone book needs. min_binding takes only non-empty trees,
+   Node(...).
 
+   Signature edited: the val line of insert.
+   Start:
      val insert : tree(string) -> int -> string -> tree(string)
-
-   min_binding gives the entry with the smallest key. OCaml's
-   Map.min_binding raises Not_found on an empty map; here the domain is
-   the non-empty trees, Node(...), so min_binding needs no exception and
-   no option.
-
-   A new call site: the first entry of the phone book. phone_book is built
-   by insert, so it is never empty, but the val line of insert does not
-   say so. The call in "let first" is an error:
-
+   Problem: "let first" is an error. phone_book is built by insert, so it
+   is never empty, but the val line of insert does not say so:
      untypeable application:
      function: Node(x1) -> (int, 'I65) where x1 = Leaf | Node(x1), int, 'I65, Leaf | Node(x1)
      argument: tree(string)
+   Goal:
+     val insert : tree(string) -> int -> string -> Node(tree(string), int, string, tree(string))
 
-   (The function is the type of min_binding, printed expanded.)
-
-   Operations used: Narrow.
-
-   Steps (each checks: no error in the file afterwards).
-
-   1. "MLsem: Type toolkit…", section Narrow. Each part of the val line
-      offers narrower types, each already checked against the body of
-      insert (all four checks together take about 0.02 s). Under the
-      result tree(string) (the last part):
-
+   1. Narrow (Type toolkit), under the result tree(string). Each option is
+      checked against the body:
         Leaf                                            fails
         Node(tree(string), int, string, tree(string))   checks
-
-      Leaf fails at the first branch, which builds a node ("untypeable
-      coercion: expected: empty, given: Leaf, int, string, Leaf"). Pick
-      Node(...), Apply:
-
+      Pick Node(...):
         val insert : tree(string) -> int -> string -> Node(tree(string), int, string, tree(string))
+      The error on "let first" is gone. Node(...) is a part of tree(string)
+      and a type by itself; in ML, a non-empty tree needs a second tree
+      type and conversions.
 
-      insert always returns a node. In ML, "a non-empty tree" is not a
-      type unless one declares a second tree type and converts between
-      the two; here Node(...) is a part of tree(string) and a type by
-      itself. The error on "let first" is gone; the code lenses read
-
-        phone_book : Node(tree(string), int, string, tree(string))
-        first : int, string
-
-      The new type is strictly more precise than the naive one (a
-      subtype of it, not the converse).
-
-      (Under the first argument tree(string), Narrow offers the same two
-      types with the opposite labels. Node(...) fails at "insert l": the
-      recursive call passes a subtree, which may be Leaf. Leaf checks, but
-      says little: with only Leaf as input, the Node branch is never
-      taken.)
-
-   Final state:
-
-     val insert : tree(string) -> int -> string -> Node(tree(string), int, string, tree(string))
-     let insert t k v = ...
-
-   Alternative: polymorphic. Starting from the textbook type
-   tree('a) -> int -> 'a -> tree('a) instead, the same step offers
-   Node(tree('a), int, 'a, tree('a)) under the result (checks), and gives
-
+   Polymorphic variant. From val insert : tree('a) -> int -> 'a -> tree('a),
+   the same step gives
      val insert : tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
 
-   It is strictly stronger than the textbook type: it instantiates to fit
-   the textbook type, not the converse.
-
-   Alternative: a partial signature. To say only that insert returns a
-   node and leave the rest to inference: Widen the result tree(string) to
-   the hole _, Apply; section Draft holes shows the hole's value
-   Node(tree(string), int, string, tree(string)); click under the node's
-   contents to keep them as a hole, Fill:
-
-     val insert : tree(string) -> int -> string -> Node(_)
-
-   The code lens and the callers still see the whole node type, and the
-   claim is checked at every typecheck, as with GHC's _ wildcards.
-
-   Where the val line of min_binding can come from. Written as a draft,
-   only the key and the value fixed,
-
+   Variant on min_binding. Signature edited: the val line of min_binding.
+   Start, a draft with the key and the value fixed:
      val min_binding : Node(_, int, 'a, _) -> (int, 'a)
 
-   Draft holes, Fill all:
+   1. Draft holes: Fill all:
+        val min_binding : Node((x1 where x1 = Leaf | Node(x1, int, 'a, any)), int, 'a, any) -> (int, 'a)
+      Exact: min_binding never looks at a right subtree, so right
+      subtrees may be anything.
 
-     val min_binding : Node((x1 where x1 = Leaf | Node(x1, int, 'a, any)), int, 'a, any) -> (int, 'a)
-
-   Exact, but not what one would write: min_binding never looks at a
-   right subtree, at any depth, so right subtrees may be anything (any).
-   Narrow, under the first part (x1 where ...): tree('a), checks. Apply:
-
-     val min_binding : Node(tree('a), int, 'a, any) -> (int, 'a)
-
-   The left subtree is now the declared type, narrower than the exact
-   one; the right one stays any. This type is strictly stronger than the
-   one written below, Node(tree('a), int, 'a, tree('a)) -> (int, 'a): it
-   also accepts a node whose right subtree is not a tree.
-
-   (The quick fixes on the failing call, Ctrl+. on it, change min_binding,
-   not insert: "Add overload: val min_binding : tree(string) -> _" and
-   "Widen domain: val min_binding : Node(tree('a), int, 'a, tree('a)) |
-   tree(string) -> _". Both fail in min_binding: its match has no Leaf
-   case, "untypeable cast: expected: empty, given: Leaf".)
+   2. Narrow, under (x1 where ...): pick tree('a) (checks):
+        val min_binding : Node(tree('a), int, 'a, any) -> (int, 'a)
 *)
 
 val (=) : ('a, 'a) -> bool
