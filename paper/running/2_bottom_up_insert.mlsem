@@ -33,7 +33,7 @@
         val insert : tree(string) -> int -> string -> _
 
       The line is now a draft: its hole is inferred from the body (the
-      check takes 0.7 s). The error on "let first" is gone.
+      check takes under 1 s). The error on "let first" is gone.
 
    2. Section Draft holes shows the hole filled. Click Fill all:
 
@@ -60,8 +60,8 @@
 
    which is tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
    (the code lens prints it so; both are the same type), but written out.
-   It is strictly stronger than the textbook type: the textbook type
-   instantiates to fit it, not the converse.
+   It is strictly stronger than the textbook type: it instantiates to fit
+   the textbook type, not the converse.
 
    Going polymorphic from the final state instead (Widen: _ for each of
    the five strings, Apply, then Fill all and split) gives two variables
@@ -69,6 +69,9 @@
 
      val insert : tree('b) -> int -> 'a -> (Node(tree('b | 'a), int, 'b | 'a, tree('b | 'a)))
      val insert : tree(empty) -> int -> 'a -> (Node(tree(empty), int, 'a, tree(empty)))
+
+   It is stronger still than the one-line polymorphic type above (it
+   instantiates to fit that one, not the converse), but harder to read.
 
    (The quick fixes on the failing call, Ctrl+. on it, change min_binding,
    not insert: "Add overload: val min_binding : tree(string) -> _" and

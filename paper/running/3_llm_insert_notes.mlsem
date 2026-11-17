@@ -9,9 +9,9 @@
 
      Typechecking timed out after 10 s
 
-   (The native checker needs about 14 s for this file; it infers an
+   (The native checker needs about 16 s for this file; it infers an
    intersection of 5 arrows with 8 type variables and 6 where definitions,
-   about 1600 characters.) The same file checks in about 0.01 s once
+   about 1600 characters.) The same file checks in about 0.02 s once
    insert has a val line.
 
    Running it. Cursor in insert, "MLsem: Infer type with LLM" (editor title
@@ -59,7 +59,7 @@
       Widen: pick _ for 'b, Apply, then Draft holes: Fill all gives
         val insert : tree('a) -> int -> 'a -> tree('a)
       (Picking _ for the result tree('a) instead is no help: the check
-      takes about 2.7 s, and the hole is exact but unreadable,
+      takes about 3 s, and the hole is exact but unreadable,
         x2 where x1 = Leaf | Node(x1, int, 'a, x1)
              and x2 = Node((x1, int, 'b, x1) | (x1, int, 'a, x2) | (x2, int, 'a, x1))
       Fill all writes a line that checks.)
@@ -67,11 +67,11 @@
    D. Two lines, the empty tree spelled out: accepted.
         val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
         val insert : tree('a) -> int -> 'a -> tree('a)
-      Overload merging, both lines selected:
-      - Collapse: Apply gives val insert : tree('a) -> int -> 'a -> tree('a)
-      - Domain subtraction: Apply makes the cases disjoint:
-          val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
-          val insert : tree('a) \ Leaf -> int -> 'a -> tree('a)
+      Overload merging, both lines selected, Collapse; Apply:
+        val insert : tree('a) -> int -> 'a -> tree('a)
+      That is answer A. Collapse loses what the first line adds (an empty
+      tree becomes a single node), as it always loses which input gives
+      which output.
 
    E. Two variables: accepted. It is what B reaches.
         val insert : tree('a) -> int -> 'b -> tree('a | 'b)
@@ -91,8 +91,9 @@
         val insert : tree('a) -> int -> 'a -> tree('a)
    Haiku first wrote one tuple argument for the curried function; the
    checker's error was enough for it to correct itself. From answer A, the
-   steps of 2_bottom_up_insert.mlsem (Widen the result tree('a) to _, Fill
-   all) give a type that says insert never returns Leaf:
+   steps of 2_bottom_up_insert.mlsem (its polymorphic alternative: Widen
+   the result tree('a) to _, Fill all) give a type that says insert never
+   returns Leaf:
         val insert : tree('a) -> int -> 'a -> (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
    that is, tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a)), as
    the code lens prints it.

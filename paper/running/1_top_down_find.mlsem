@@ -14,8 +14,8 @@
    cases (on an empty tree the key may be anything, not only an int). The
    intent is tree('a) -> int -> Nil | 'a.
 
-   Operations used: Inline inferred type, Widen (as in scenarios 2 and 3),
-   Overload merging: Collapse.
+   Operations used: Inline inferred type, Widen, Overload merging:
+   Collapse.
 
    Steps (each checks: no error in the file afterwards).
 
