@@ -1,0 +1,86 @@
+(* Scenario 1, top to bottom: from the inferred type to the intended one.
+
+   The sign-up endpoint of a web backend validates each form field into a
+   result, as in Rust or TypeScript: Ok(value) or Err(message). The
+   validators keep their messages in their types (scenario 2 relies on
+   this). status turns a result into the HTTP status code of the
+   response: 200 for Ok; 400 for a malformed request, a field that
+   cannot be read at all (the age is not a number); 422 for a field that
+   is read but rejected (too young, not an email address).
+
+   Without a val line, MLsem infers (code lens above status):
+
+     status : (Ok() -> 200) & (Err(~"not a number") -> 422) & (Err("not a number") -> 400)
+
+   (Ok() is Ok of anything; ~"not a number" is anything but that string.)
+   It is exact, and it is information: a caller could rely on "not a
+   number" giving 400, and on there being three codes. But the endpoint
+   should not promise which message gives which code: messages are
+   reworded, and a new check (say, an email already taken: 409) brings a
+   new code. The intent is result(any, any) -> int: any result, a code.
+
+   Operations used: Inline inferred type, Overload merging: Collapse,
+   Widen.
+
+   Steps (each checks: no error in the file afterwards).
+
+   1. Ctrl+. on "let status", quick action "Inline inferred type". It
+      writes one val line per case:
+
+        val status : Ok() -> 200
+        val status : Err(~"not a number") -> 422
+        val status : Err("not a number") -> 400
+
+   2. "MLsem: Type toolkit…", section Overload merging: select the three
+      lines. Click Apply under Collapse:
+
+        val status : Ok() | Err() -> 200 | 400 | 422
+
+      Collapse writes the smallest single arrow containing the three
+      lines: it forgets which input gives which output, exactly what the
+      endpoint should not promise. Widen then forgets the three codes.
+
+   3. Section Widen. Click under 200 | 400 | 422 (the whole result) and
+      pick int, then Apply:
+
+        val status : Ok() | Err() -> int
+
+      Ok() | Err() is result(any, any): status takes any result,
+      including those of parse_age and check_email with their literal
+      messages, so the calls below still check.
+
+   Final state:
+
+     val status : Ok() | Err() -> int
+     let status r = ...
+*)
+
+val (<) : (int, int) -> bool
+val (>) : (int, int) -> bool
+val parse_int : string -> int | Nil
+val length : string -> int
+val contains : (string, string) -> bool
+
+type result('a, 'e) = Ok('a) | Err('e)
+
+val parse_age : string -> result(int, "not a number" | "too young" | "not a valid age")
+let parse_age s =
+  let n = parse_int s in
+  if n is Nil then Err("not a number")
+  else if n < 13 then Err("too young")
+  else if n > 130 then Err("not a valid age")
+  else Ok(n)
+
+val check_email : string -> result(string, "invalid email")
+let check_email s =
+  if contains (s, "@") then Ok(s) else Err("invalid email")
+
+let status r =
+  match r with
+  | Ok(_) -> 200
+  | Err("not a number") -> 400
+  | Err(_) -> 422
+  end
+
+let age_status = status (parse_age "36")
+let email_status = status (check_email "ana@example.org")

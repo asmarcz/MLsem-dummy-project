@@ -6,25 +6,28 @@
 
    collect turns a list of results into one result: Ok of all the values
    if every one is Ok, otherwise Err of all the error messages. Unlike
-   Rust's collect, it does not stop at the first error: the sign-up form
-   shows every invalid field at once. In the project it is used as
+   Rust's collect, and unlike validate_signup in scenario 2, it does not
+   stop at the first error: the sign-up form shows every invalid field at
+   once. In the project, with the validators of scenarios 1 and 2, it is
+   used as
 
      let field_errors form =
-       collect [ check_name form.name ; check_email form.email ; parse_age form.age ]
+       collect [ parse_age form.age ; check_email form.email ]
 
-   (with the val line of answer E below, the native checker gives
-   field_errors : { name : string ; email : string ; age : string ..}
-                  -> Ok([ (int | string)* ]) | Err([ string+ ]):
-   the fields need not have the same type.)
+   With the val line of answer E below, its code lens reads
+     field_errors : { age : string ; email : string ..}
+                    -> Ok([ (int | string)* ])
+                     | Err([ ("not a number" | "too young" | "not a valid age" | "invalid email")+ ])
+   The fields need not have the same type, and every message is kept.
 
    The problem. Without a val line, typechecking 3_llm_collect.mlsem stops
    at the language server's default limit:
 
      Typechecking timed out after 10 s
 
-   (The native checker did not finish either; it was stopped after 120 s.)
-   With any of the accepted val lines below, the file checks in 0.02 to
-   0.1 s.
+   (The native checker did not finish either; it was stopped after 150 s.)
+   With any of the accepted val lines below, the file checks in 0.03 to
+   0.2 s.
 
    Running it. Cursor in collect, "MLsem: Infer type with LLM" (editor
    title bar), or the LLM inference section of "MLsem: Type toolkit…".
@@ -32,7 +35,7 @@
    one goes back to the LLM with its errors.
 
    Plausible answers, as the signature check judges them (each check takes
-   0.01 to 0.1 s), and how the toolkit improves them. All steps below were
+   0.01 to 0.2 s), and how the toolkit improves them. All steps below were
    replayed on 3_llm_collect.mlsem with the answer written above collect;
    each ends with no error in the file.
 
@@ -44,13 +47,16 @@
         val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
       An Err always carries at least one message.
 
-   B. Correct but monomorphic (the types of one form field): accepted.
+   B. Correct but monomorphic (the age field, its messages as strings):
+      accepted.
         val collect : [ result(int, string)* ] -> result([ int* ], [ string* ])
+      In the project, field_errors then fails: the email is a string.
       Improve it as in scenario 2. Widen: pick _ for both ints and both
       strings; Apply:
         val collect : [ result(_, _)* ] -> result([ _* ], [ _* ])
       Draft holes: Fill all:
         val collect : [ result('a, 'b)* ] -> result([ 'a* ], [ 'b* ])
+      That is answer A (field_errors checks again), and A's steps follow.
 
    C. Rust's shape (stop at the first error): rejected.
         val collect : [ result('a, 'e)* ] -> result([ 'a* ], 'e)

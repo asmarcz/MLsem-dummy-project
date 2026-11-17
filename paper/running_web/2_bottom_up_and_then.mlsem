@@ -1,9 +1,8 @@
 (* Scenario 2, bottom to top: from a naive type to a general one.
 
-   The validators of the sign-up form keep their messages in their types
-   (the contract that scenario 1 mentions at its end): the error type of
-   parse_age is the union of its three messages. No error type is
-   declared anywhere.
+   The validators of the sign-up form keep their messages in their types,
+   as in scenario 1: the error type of parse_age is the union of its
+   three messages. No error type is declared anywhere.
 
    and_then r f chains validations (Rust's Result::and_then): if r is
    Ok(x) it continues with f x, otherwise it passes the error on. The
@@ -11,8 +10,9 @@
 
      val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
 
-   validate_signup chains the age, the email and the name. It checks, but
-   its code lens shows that every message is now just a string:
+   validate_signup chains the age, the email and the name, and status
+   (from scenario 1) gives the response's code. It checks, but the code
+   lens of validate_signup shows that every message is now just a string:
 
      validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
                        -> Ok({ age : int ; email : string ; name : 'a & string }) | Err(string)
@@ -51,17 +51,16 @@
                           -> Ok({ age : int ; email : string ; name : 'a & string })
                            | Err("not a number" | "too young" | "not a valid age" | "invalid email" | "name required")
 
-      Type variable instantiation lists what the outer call uses:
-      'd = "not a number" | "too young" | "not a valid age" (from
-      parse_age) and 'c = "invalid email" | "name required" (from the
-      inner call). From now on, a validator that gains a message, say
+      In the outer call, 'd is "not a number" | "too young" | "not a
+      valid age" (from parse_age) and 'c is "invalid email" | "name
+      required" (from the inner call). From now on, a validator that gains a message, say
       Err("email too long") in check_email (its val line removed),
       makes the call to field_of fail, with the new message in the
       argument type.
 
    The new type is strictly more general than the naive one. It is
-   Rust's and OCaml's and_then, result('a, 'e) -> ('a -> result('b, 'e))
-   -> result('b, 'e), with the errors written as a union; in MLsem the two
+   Rust's and_then (OCaml's Result.bind), result('a, 'e) -> ('a ->
+   result('b, 'e)) -> result('b, 'e), with the errors written as a union; in MLsem the two
    are equivalent (result is covariant: each instantiates to fit the
    other). What differs from Rust is the error type: there, the messages
    would be an enum declared for the purpose; here the union of literal
@@ -124,6 +123,16 @@ let validate_signup form =
     and_then (check_email form.email) (fun email ->
       if length form.name < 1 then Err("name required")
       else Ok({ name = form.name ; email = email ; age = age })))
+
+val status : Ok() | Err() -> int
+let status r =
+  match r with
+  | Ok(_) -> 200
+  | Err("not a number") -> 400
+  | Err(_) -> 422
+  end
+
+let signup_status form = status (validate_signup form)
 
 val field_of : "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
 let field_of e =
