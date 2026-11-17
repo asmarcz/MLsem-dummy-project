@@ -92,9 +92,10 @@
    Haiku first wrote one tuple argument for the curried function; the
    checker's error was enough for it to correct itself. From answer A, the
    steps of 2_bottom_up_insert.mlsem (its polymorphic alternative: Widen
-   the result tree('a) to _, Fill all) give a type that says insert never
-   returns Leaf:
-        val insert : tree('a) -> int -> 'a -> (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
+   the result tree('a) to _, Fill keeping the node's contents as a hole,
+   delete the unused where) give a type that says insert never returns
+   Leaf:
+        val insert : tree('a) -> int -> 'a -> Node(_)
    that is, tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a)), as
    the code lens prints it.
 *)

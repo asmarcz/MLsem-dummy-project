@@ -22,7 +22,8 @@
 
    (The function is the type of min_binding, printed expanded.)
 
-   Operations used: Widen (to a hole), Draft holes: Fill all.
+   Operations used: Widen (to a hole), Draft holes: Fill keeping a part as
+   a hole.
 
    Steps (each checks: no error in the file afterwards).
 
@@ -35,43 +36,55 @@
       The line is now a draft: its hole is inferred from the body (the
       check takes under 1 s). The error on "let first" is gone.
 
-   2. Section Draft holes shows the hole filled. Click Fill all:
+   2. Section Draft holes shows the hole's value:
 
-        val insert : tree(string) -> int -> string -> (Node(tree(string), int, string, tree(string)))
+        Node(tree(string), int, string, tree(string))
 
       insert always returns a node. In ML, "a non-empty tree" is not a
       type unless one declares a second tree type and converts between
       the two; here Node(...) is a part of tree(string) and a type by
-      itself. The new type is strictly more precise than the naive one (a
-      subtype of it, not the converse). The code lenses now read
+      itself. Click under the node's contents,
+      tree(string), int, string, tree(string), to keep them as a hole;
+      the row shows the line as it will be written. Fill:
 
+        val insert : tree(string) -> int -> string -> Node(_)
+
+      The line says what the author means, insert returns a node (never
+      Leaf), and leaves the rest to inference. The code lens and the
+      callers still see the whole type:
+
+        insert : tree(string) -> int -> string -> Node(tree(string), int, string, tree(string))
         phone_book : Node(tree(string), int, string, tree(string))
         first : int, string
 
+      The claim is checked at every typecheck: if the body could return
+      Leaf, the file would no longer check (untypeable coercion, given:
+      Leaf). The type is strictly more precise than the naive one (a
+      subtype of it, not the converse). Fill with nothing kept writes the
+      whole type, -> Node(tree(string), int, string, tree(string)). This
+      is a partial type signature, as with GHC's _ wildcards.
+
    Final state:
 
-     val insert : tree(string) -> int -> string -> (Node(tree(string), int, string, tree(string)))
+     val insert : tree(string) -> int -> string -> Node(_)
      let insert t k v = ...
 
    Alternative: polymorphic. Starting from the textbook type
-   tree('a) -> int -> 'a -> tree('a) instead, the same two steps give
+   tree('a) -> int -> 'a -> tree('a) instead, step 1 is the same. In
+   step 2 the hole's value is written out with a where definition,
 
-     val insert : tree('a) -> int -> 'a -> (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
+     (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
 
-   which is tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
-   (the code lens prints it so; both are the same type), but written out.
+   and the x1 after Node is the node's contents. Keeping that x1 as a
+   hole, Fill writes (Node(_) where x1 = ...), the where now unused;
+   deleting it by hand gives
+
+     val insert : tree('a) -> int -> 'a -> Node(_)
+
+   The code lens reads
+   insert : ∀'a. tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a)).
    It is strictly stronger than the textbook type: it instantiates to fit
    the textbook type, not the converse.
-
-   Going polymorphic from the final state instead (Widen: _ for each of
-   the five strings, Apply, then Fill all and split) gives two variables
-   and two lines:
-
-     val insert : tree('b) -> int -> 'a -> (Node(tree('b | 'a), int, 'b | 'a, tree('b | 'a)))
-     val insert : tree(empty) -> int -> 'a -> (Node(tree(empty), int, 'a, tree(empty)))
-
-   It is stronger still than the one-line polymorphic type above (it
-   instantiates to fit that one, not the converse), but harder to read.
 
    (The quick fixes on the failing call, Ctrl+. on it, change min_binding,
    not insert: "Add overload: val min_binding : tree(string) -> _" and
