@@ -1,0 +1,74 @@
+(* Scenario 1, top to bottom: from the inferred type to the intended one.
+
+   The sign-up endpoint of a web backend validates each form field into a
+   result, as in Rust or TypeScript: Ok(value) or Err(message). parse_age
+   reads the age field; status turns a result into the HTTP status code.
+
+   Without a val line, MLsem infers (code lens above parse_age):
+
+     parse_age : string -> Ok(int) | Err("not a valid age" | "too young" | "not a number")
+
+   It is exact, and it is information: a caller could match on each
+   message. But the API should not promise its messages: they will be
+   reworded and translated, and new checks will add new ones. The intent
+   is string -> result(int, string).
+
+   Operations used: Inline inferred type, Widen.
+
+   Steps (each checks: no error in the file afterwards).
+
+   1. Ctrl+. on "let parse_age", quick action "Inline inferred type":
+
+        val parse_age : string -> Ok(int) | Err("not a valid age" | "too young" | "not a number")
+
+   2. "MLsem: Type toolkit…", section Widen. Click under the whole result,
+      Ok(int) | Err(...), and pick result(int, string), then Apply:
+
+        val parse_age : string -> result(int, string)
+
+      Widen recognises the declared type result and finds its arguments:
+      int for Ok, and string, the next wider type of the three messages.
+      The call status (parse_age "36") still checks.
+
+   Final state:
+
+     val parse_age : string -> result(int, string)
+     let parse_age s = ...
+
+   Alternative: keep the shape. Clicking under the three messages instead
+   offers string; Apply gives
+
+     val parse_age : string -> Ok(int) | Err(string)
+
+   After that Widen no longer offers result(int, string) (it is the same
+   type, not a wider one); the Simplify section does, as "declared type".
+   Simplify also offers, right after step 1, the messages as part of the
+   contract: result(int, "not a valid age" | "too young" | "not a number").
+*)
+
+val (<) : (int, int) -> bool
+val (>) : (int, int) -> bool
+val parse_int : string -> int | Nil
+val contains : (string, string) -> bool
+
+type result('a, 'e) = Ok('a) | Err('e)
+
+let parse_age s =
+  let n = parse_int s in
+  if n is Nil then Err("not a number")
+  else if n < 13 then Err("too young")
+  else if n > 130 then Err("not a valid age")
+  else Ok(n)
+
+val check_email : string -> result(string, string)
+let check_email s =
+  if contains (s, "@") then Ok(s) else Err("invalid email")
+
+val status : result(any, string) -> int
+let status r =
+  match r with
+  | Ok(_) -> 200
+  | Err(_) -> 422
+  end
+
+let resp = status (parse_age "36")

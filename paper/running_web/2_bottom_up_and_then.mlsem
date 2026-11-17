@@ -1,0 +1,142 @@
+(* Scenario 2, bottom to top: from a naive type to a general one.
+
+   The validators of the sign-up form keep their messages in their types
+   (the contract that scenario 1 mentions at its end): the error type of
+   parse_age is the union of its three messages. No error type is
+   declared anywhere.
+
+   and_then r f chains validations (Rust's Result::and_then): if r is
+   Ok(x) it continues with f x, otherwise it passes the error on. The
+   author wrote its type as Rust code with Result<T, String> would:
+
+     val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
+
+   validate_signup chains the age, the email and the name. It checks, but
+   its code lens shows that every message is now just a string:
+
+     validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
+                       -> Ok({ age : int ; email : string ; name : 'a & string }) | Err(string)
+
+   A new call site: the sign-up page highlights the input that is wrong.
+   field_of maps each message to its field, one case per message and no
+   catch-all, so a new message without a field is a type error. The call
+   in "let error_field" is an error:
+
+     untypeable application:
+     function: "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
+     argument: string
+
+   Operations used: Widen (to a hole), Draft holes: Fill all.
+
+   Steps (each checks: no error in the file afterwards).
+
+   1. "MLsem: Type toolkit…", section Widen. Under the val line, click
+      each string (three of them) and pick the hole _ (the last option).
+      Apply:
+
+        val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
+
+      The line is now a draft: its holes are inferred from the body. The
+      error in error_field is gone; its code lens reads
+      error_field : { age : string ; email : string ; name : string ..} -> Nil | ("age" | "email" | "name").
+
+   2. Section Draft holes shows the holes filled. Click Fill all:
+
+        val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
+
+      The errors of r and those of f, as a union. validate_signup keeps
+      every message (code lens):
+
+        validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
+                          -> Ok({ age : int ; email : string ; name : 'a & string })
+                           | Err("not a number" | "too young" | "not a valid age" | "invalid email" | "name required")
+
+      Type variable instantiation lists what the outer call uses:
+      'd = "not a number" | "too young" | "not a valid age" (from
+      parse_age) and 'c = "invalid email" | "name required" (from the
+      inner call). From now on, a validator that gains a message, say
+      Err("email too long") in check_email (its val line removed),
+      makes the call to field_of fail, with the new message in the
+      argument type.
+
+   The new type is strictly more general than the naive one. It is
+   Rust's and OCaml's and_then, result('a, 'e) -> ('a -> result('b, 'e))
+   -> result('b, 'e), with the errors written as a union; in MLsem the two
+   are equivalent (result is covariant: each instantiates to fit the
+   other). What differs from Rust is the error type: there, the messages
+   would be an enum declared for the purpose; here the union of literal
+   messages is the error type, and the generic and_then carries it
+   through the chain.
+
+   Final state:
+
+     val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
+     let and_then r f = ...
+
+   Pitfall: a type written for a first use on ints,
+     val and_then : result(int, string) -> (int -> result(int, string)) -> result(int, string)
+   also fails on the inner call (its payload is a string). Picking _ for
+   every int and every string makes the draft need one line per case of
+   r; Fill all and split then writes
+     val and_then : result('c, empty) -> ('c -> result('a, 'b)) -> result('a, 'b)
+     val and_then : result(empty, 'a) -> (empty -> result(any, any)) -> result(empty, 'a)
+   and error_field still fails: the val lines of a definition share their
+   type variables, so the error type 'a of the second line becomes the
+   success type 'a of the first. Picking the ints and the last two
+   strings first, then the remaining string, works but takes four steps
+   and ends with result('c, 'd) -> ('c -> result('a, 'b)) -> result('a, 'd \ 'b | 'b).
+
+   (The quick fixes on the failing call, Ctrl+. on it, change field_of,
+   not and_then: "Add overload: val field_of : string -> _" and "Widen
+   domain: val field_of : "not a number" | ... | string -> _". Both fail
+   in field_of: its match has no case for the other strings.)
+*)
+
+val (<) : (int, int) -> bool
+val (>) : (int, int) -> bool
+val parse_int : string -> int | Nil
+val length : string -> int
+val contains : (string, string) -> bool
+
+type result('a, 'e) = Ok('a) | Err('e)
+
+val parse_age : string -> result(int, "not a number" | "too young" | "not a valid age")
+let parse_age s =
+  let n = parse_int s in
+  if n is Nil then Err("not a number")
+  else if n < 13 then Err("too young")
+  else if n > 130 then Err("not a valid age")
+  else Ok(n)
+
+val check_email : string -> result(string, "invalid email")
+let check_email s =
+  if contains (s, "@") then Ok(s) else Err("invalid email")
+
+val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
+let and_then r f =
+  match r with
+  | Ok(x) -> f x
+  | Err(e) -> Err(e)
+  end
+
+let validate_signup form =
+  and_then (parse_age form.age) (fun age ->
+    and_then (check_email form.email) (fun email ->
+      if length form.name < 1 then Err("name required")
+      else Ok({ name = form.name ; email = email ; age = age })))
+
+val field_of : "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
+let field_of e =
+  match e with
+  | "not a number" -> "age"
+  | "too young" -> "age"
+  | "not a valid age" -> "age"
+  | "invalid email" -> "email"
+  | "name required" -> "name"
+  end
+
+let error_field form =
+  match validate_signup form with
+  | Ok(_) -> Nil
+  | Err(e) -> field_of e
+  end

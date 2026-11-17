@@ -1,0 +1,13 @@
+type result('a, 'e) = Ok('a) | Err('e)
+
+let collect rs =
+  match rs with
+  | [] -> Ok([])
+  | r :: rest ->
+    match (r, collect rest) with
+    | (Ok(x), Ok(xs)) -> Ok(x :: xs)
+    | (Ok(_), Err(es)) -> Err(es)
+    | (Err(e), Ok(_)) -> Err([e])
+    | (Err(e), Err(es)) -> Err(e :: es)
+    end
+  end
