@@ -23,9 +23,18 @@
           at `t`: untypeable cast: expected: empty, given: tree('a), int, 'a
         try 2, accepted:
           val insert : tree('a) -> int -> 'a -> tree('a)
+      Actual run, claude-sonnet-5-5, 2026-11-17, 2 requests:
+        try 1, rejected (the same tuple argument, the line written twice):
+          val insert : (tree('a), int, 'a) -> Node(tree('a), int, 'a, tree('a))
+          at `t`: untypeable cast: expected: empty, given: tree('a), int, 'a
+        try 2, accepted:
+          val insert : tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
+      Sonnet gives the result of step 2 directly. Its summarised thinking
+      considered separate variables for the tree's values and the new
+      value, and kept one.
 
-   2. Optional, as in scenario 2. Narrow, under the result tree('a): pick
-      Node(tree('a), int, 'a, tree('a)) (checks):
+   2. Optional, after Haiku's answer, as in scenario 2. Narrow, under the
+      result tree('a): pick Node(tree('a), int, 'a, tree('a)) (checks):
         val insert : tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
 
    Other answers an LLM may give, and the operations that fix them:

@@ -27,10 +27,13 @@
 
    1. LLM inference (Type toolkit, or "MLsem: Infer type with LLM"),
       cursor in collect. Each answer is checked; a rejected one goes back
-      to the LLM with its errors.
+      to the LLM with its errors. Actual runs, 2026-11-17, 1 request each:
+      claude-haiku-5-5 and claude-sonnet-5-5 both answered the goal at
+      the first try, accepted:
+        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
 
-   Answers an LLM may give, and the operations that fix them. They were
-   written by hand and checked; no LLM was called for these notes.
+   Other answers an LLM may give, and the operations that fix them. They
+   were written by hand and checked.
 
      A. val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e* ])
         Accepted. Widen: _ for [ 'e* ]. Draft holes: Fill all gives the
