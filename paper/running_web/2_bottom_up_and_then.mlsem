@@ -18,7 +18,7 @@
    with and_then, whose val line turns every message into a string, and
    field_of takes only the five messages:
      untypeable application:
-     function: "NaN" | "young" | "old" | "no @" | "empty" -> "age" | "email" | "name"
+     function: "NaN" | "young" | "old" | "no @" | "no name" -> "age" | "email" | "name"
      argument: string
    Goal: the errors as type variables, so that each message stays in the
    type:
@@ -34,7 +34,7 @@
       every message (code lens):
         validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
                           -> Ok({ age : int ; email : string ; name : 'a & string })
-                           | Err("NaN" | "young" | "old" | "no @" | "empty")
+                           | Err("NaN" | "young" | "old" | "no @" | "no name")
 
    3. Bonus. Simplify (Type toolkit), whole line: 'c and 'd merged.
         val and_then : result('a, 'c) -> ('a -> result('b, 'c)) -> result('b, 'c)
@@ -74,7 +74,7 @@ let and_then r f =
 let validate_signup form =
   and_then (parse_age form.age) (fun age ->
     and_then (check_email form.email) (fun email ->
-      if length form.name < 1 then Err("empty")
+      if length form.name < 1 then Err("no name")
       else Ok({ name = form.name ; email = email ; age = age })))
 
 val status : Ok() | Err() -> int
@@ -87,14 +87,14 @@ let status r =
 
 let signup_status form = status (validate_signup form)
 
-val field_of : "NaN" | "young" | "old" | "no @" | "empty" -> "age" | "email" | "name"
+val field_of : "NaN" | "young" | "old" | "no @" | "no name" -> "age" | "email" | "name"
 let field_of e =
   match e with
   | "NaN" -> "age"
   | "young" -> "age"
   | "old" -> "age"
   | "no @" -> "email"
-  | "empty" -> "name"
+  | "no name" -> "name"
   end
 
 let error_field form =
