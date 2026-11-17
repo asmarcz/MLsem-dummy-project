@@ -42,39 +42,6 @@
       covariant, so taking 'd | 'c for 'c fits every use of step 2's line.
       It is Rust's and_then (OCaml's Result.bind), with the union of
       literal messages as the error type instead of a declared enum.
-
-   Variant: a type written for ints.
-   Start:
-     val and_then : result(int, string) -> (int -> result(int, string)) -> result(int, string)
-   Problem: the inner call in validate_signup fails too (its payload is a
-   string):
-     untypeable application:
-     function: result(int, string) -> (int -> result(int, string)) -> result(int, string)
-     argument: result(string, "invalid email")
-
-   1. Widen, under the four ints and the last two strings: pick _.
-        val and_then : result(_, string) -> (_ -> result(_, _)) -> result(_, _)
-
-   2. Draft holes: Fill all:
-        val and_then : result('c, string) -> ('c -> result('a, 'b)) -> result('a, string | 'b)
-      The call to field_of still fails: the first string is left.
-
-   3. Widen, under the two strings: pick _.
-        val and_then : result('c, _) -> ('c -> result('a, 'b)) -> result('a, _ | 'b)
-
-   4. Draft holes: Fill all:
-        val and_then : result('c, 'd) -> ('c -> result('a, 'b)) -> result('a, 'd \ 'b | 'b)
-
-   5. Bonus. Simplify, whole line: 'b and 'd merged.
-        val and_then : result('c, 'b) -> ('c -> result('a, 'b)) -> result('a, 'b)
-
-   Picking _ for every int and string at once does not work: the draft
-   needs one line per case of r, and Fill all splits it into
-     val and_then : result('c, empty) -> ('c -> result('a, 'b)) -> result('a, 'b)
-     val and_then : result(empty, 'a) -> (empty -> result(any, any)) -> result(empty, 'a)
-   and the call to field_of fails again: the val lines of a definition
-   share their type variables, so the error 'a of the second line is the
-   success 'a of the first.
 *)
 
 val (<) : (int, int) -> bool
