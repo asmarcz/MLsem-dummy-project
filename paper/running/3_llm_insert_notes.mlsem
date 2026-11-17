@@ -30,7 +30,7 @@
 
    B. Correct but monomorphic: accepted.
         val insert : tree(int) -> int -> int -> tree(int)
-      Improve it as in scenario 2. Widen: pick _ for the int inside the
+      Make it polymorphic. Widen: pick _ for the int inside the
       first tree(int), for the value int and for the int inside the result
       tree(int); Apply:
         val insert : tree(_) -> int -> _ -> tree(_)
@@ -73,8 +73,10 @@
           val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
           val insert : tree('a) \ Leaf -> int -> 'a -> tree('a)
 
-   E. The most general answer: accepted. It is what B reaches.
+   E. Two variables: accepted. It is what B reaches.
         val insert : tree('a) -> int -> 'b -> tree('a | 'b)
+      It is equivalent to A, not more general: tree is covariant, so each
+      instantiates to fit the other.
 
    Not a val line at all: OCaml syntax is rejected with a confusing error.
         val insert : 'a tree -> int -> 'a -> 'a tree
@@ -89,6 +91,9 @@
         val insert : tree('a) -> int -> 'a -> tree('a)
    Haiku first wrote one tuple argument for the curried function; the
    checker's error was enough for it to correct itself. From answer A, the
-   steps of 2_bottom_up_insert.mlsem (Widen the three element types to _,
-   Fill all) give the more general tree('b) -> int -> 'a -> tree('b | 'a).
+   steps of 2_bottom_up_insert.mlsem (Widen the result tree('a) to _, Fill
+   all) give a type that says insert never returns Leaf:
+        val insert : tree('a) -> int -> 'a -> (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
+   that is, tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a)), as
+   the code lens prints it.
 *)

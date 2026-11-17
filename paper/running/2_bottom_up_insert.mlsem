@@ -1,52 +1,80 @@
-(* Scenario 2, bottom to top: from a naive type to a general one.
+(* Scenario 2, bottom to top: from a naive type to a more precise one.
 
    insert t k v adds key k with value v to the tree t (replacing the value
    of k if it is there). Without a val line its type inference takes more
    than the language server's 10 s limit (see scenario 3), so the author
-   wrote the type for the first use, a map from ints to ages:
+   wrote the type the phone book needs:
 
-     val insert : tree(int) -> int -> int -> tree(int)
+     val insert : tree(string) -> int -> string -> tree(string)
 
-   A new call site stores names: the call in "let names" is an error,
+   min_binding gives the entry with the smallest key. OCaml's
+   Map.min_binding raises Not_found on an empty map; here the domain is
+   the non-empty trees, Node(...), so min_binding needs no exception and
+   no option.
+
+   A new call site: the first entry of the phone book. phone_book is built
+   by insert, so it is never empty, but the val line of insert does not
+   say so. The call in "let first" is an error:
 
      untypeable application:
-     function: tree(int) -> int -> int -> tree(int)
+     function: Node(x1) -> (int, 'I65) where x1 = Leaf | Node(x1), int, 'I65, Leaf | Node(x1)
      argument: tree(string)
+
+   (The function is the type of min_binding, printed expanded.)
+
+   Operations used: Widen (to a hole), Draft holes: Fill all.
 
    Steps (each checks: no error in the file afterwards).
 
    1. "MLsem: Type toolkit…", section Widen. Under the val line, click the
-      int inside the first tree(int), the int of the value (third
-      argument), and the int inside the result tree(int); for each pick
-      the hole _ (the last option). Apply:
+      result tree(string) (the last part) and pick the hole _ (the last
+      option). Apply:
 
-        val insert : tree(_) -> int -> _ -> tree(_)
+        val insert : tree(string) -> int -> string -> _
 
-      The line is now a draft: its holes are inferred from the body.
-      The error on "let names" is gone.
+      The line is now a draft: its hole is inferred from the body (the
+      check takes 0.7 s). The error on "let first" is gone.
 
-   2. Section Draft holes shows the holes filled:
-      tree('b) -> int -> 'a -> tree('b | 'a). Click Fill all:
+   2. Section Draft holes shows the hole filled. Click Fill all:
 
-        val insert : tree('b) -> int -> 'a -> tree('b | 'a)
+        val insert : tree(string) -> int -> string -> (Node(tree(string), int, string, tree(string)))
 
-      More general than the expected tree('a) -> int -> 'a -> tree('a):
-      inserting a value of another type gives a tree of the union.
-      Type variable instantiation lists what each call uses:
-        insert (insert Leaf 1 37) 2 41:  'a = 41,    'b = 37
-        insert Leaf 1 37:                'a = 37,    'b = empty
-        insert phone_book 2 "Bob":       'a = "Bob", 'b = string
+      insert always returns a node. In ML, "a non-empty tree" is not a
+      type unless one declares a second tree type and converts between
+      the two; here Node(...) is a part of tree(string) and a type by
+      itself. The new type is strictly more precise than the naive one (a
+      subtype of it, not the converse). The code lenses now read
 
-   (The quick fixes on the failing call, Ctrl+. on it, are "Add overload:
-   val insert : tree(string) -> _" and "Widen domain: val insert :
-   tree(int) | tree(string) -> _". For this curried function both lead
-   nowhere: the first hole fills with a screen-sized type that then fails
-   to check, the second makes the file time out.)
+        phone_book : Node(tree(string), int, string, tree(string))
+        first : int, string
 
    Final state:
 
-     val insert : tree('b) -> int -> 'a -> tree('b | 'a)
+     val insert : tree(string) -> int -> string -> (Node(tree(string), int, string, tree(string)))
      let insert t k v = ...
+
+   Alternative: polymorphic. Starting from the textbook type
+   tree('a) -> int -> 'a -> tree('a) instead, the same two steps give
+
+     val insert : tree('a) -> int -> 'a -> (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
+
+   which is tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
+   (the code lens prints it so; both are the same type), but written out.
+   It is strictly stronger than the textbook type: the textbook type
+   instantiates to fit it, not the converse.
+
+   Going polymorphic from the final state instead (Widen: _ for each of
+   the five strings, Apply, then Fill all and split) gives two variables
+   and two lines:
+
+     val insert : tree('b) -> int -> 'a -> (Node(tree('b | 'a), int, 'b | 'a, tree('b | 'a)))
+     val insert : tree(empty) -> int -> 'a -> (Node(tree(empty), int, 'a, tree(empty)))
+
+   (The quick fixes on the failing call, Ctrl+. on it, change min_binding,
+   not insert: "Add overload: val min_binding : tree(string) -> _" and
+   "Widen domain: val min_binding : Node(tree('a), int, 'a, tree('a)) |
+   tree(string) -> _". Both fail in min_binding: its match has no Leaf
+   case, "untypeable cast: expected: empty, given: Leaf".)
 *)
 
 val (=) : ('a, 'a) -> bool
@@ -54,7 +82,7 @@ val (<) : (int, int) -> bool
 
 type tree('a) = Leaf | Node(tree('a), int, 'a, tree('a))
 
-val insert : tree(int) -> int -> int -> tree(int)
+val insert : tree(string) -> int -> string -> tree(string)
 let insert t k v =
   match t with
   | Leaf -> Node(Leaf, k, v, Leaf)
@@ -64,8 +92,12 @@ let insert t k v =
     else Node(l, k', v', insert r k v)
   end
 
-let ages = insert (insert Leaf 1 37) 2 41
+val min_binding : Node(tree('a), int, 'a, tree('a)) -> (int, 'a)
+let min_binding t =
+  match t with
+  | Node(Leaf, k, v, _) -> (k, v)
+  | Node(l, _, _, _) -> min_binding l
+  end
 
-val phone_book : tree(string)
-let phone_book = Node(Leaf, 1, "Alice", Leaf)
-let names = insert phone_book 2 "Bob"
+let phone_book = insert (insert Leaf 2 "Bob") 1 "Alice"
+let first = min_binding phone_book
