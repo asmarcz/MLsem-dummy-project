@@ -22,16 +22,14 @@
      a. Widen: click under the `any` of the second list (the last `any` of
         the line), pick _ (hole), Apply:
           val partition : [ any* ] -> ([ int* ], [ _* ])
-     b. Draft holes: the hole is ~int. Fill:
+     b. Draft holes: the hole is ~int. Fill (or the quick action on the
+        hole, "Replace _ with (~int)"):
           val partition : [ any* ] -> ([ int* ], [ (~int)* ])
-        BUG met here: the quick action "Replace _ with ~int" writes the
-        value without parentheses,
-          val partition : [ any* ] -> ([ int* ], [ ~int* ])
-        which does not parse ("unexpected regular expression").
+        The parentheses are needed: [ ~int* ] does not parse.
 
    Final state: one of the last two lines above. With a hole in each list,
    `[ 'a* ] -> ([ _* ], [ _* ])`, the holes are 'a & int and 'a \ int, which
-   gives the polymorphic one (the quick action has the same bug).
+   gives the polymorphic one.
 
    Also seen: Widen the whole result to a hole and Fill gives an exact but
    bulky type,
