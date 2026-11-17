@@ -18,9 +18,9 @@
      untypeable application:
      function: "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
      argument: string
-   Goal:
-     val and_then : result('a, 'c) -> ('a -> result('b, 'c)) -> result('b, 'c)
-   Step 2 reaches an equivalent type; the bonus step writes this one.
+   Goal: the errors as type variables, so that each message stays in the
+   type:
+     val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
 
    1. Widen (Type toolkit), under each of the three strings: pick the hole _.
         val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
