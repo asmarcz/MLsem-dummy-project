@@ -11,8 +11,8 @@
 
    Signature edited: the val line of status (none at the start).
    Start, the inferred type (code lens):
-     status : (Ok() -> 200) & (Err(~"not a number") -> 422) & (Err("not a number") -> 400)
-   (Ok() is Ok of anything; ~"not a number" is anything but that string.)
+     status : (Ok() -> 200) & (Err(~"NaN") -> 422) & (Err("NaN") -> 400)
+   (Ok() is Ok of anything; ~"NaN" is anything but that string.)
    Problem: the inferred type is exact but promises too much: which
    message gives which code, and that there are three codes. Messages get
    reworded, and a new check brings a new code.
@@ -22,8 +22,8 @@
 
    1. Inline inferred type (Ctrl+. on "let status"):
         val status : Ok() -> 200
-        val status : Err(~"not a number") -> 422
-        val status : Err("not a number") -> 400
+        val status : Err(~"NaN") -> 422
+        val status : Err("NaN") -> 400
 
    2. Overload merging: Collapse (Type toolkit), the three lines selected:
         val status : Ok() | Err() -> 200 | 400 | 422
@@ -50,22 +50,22 @@ val contains : (string, string) -> bool
 
 type result('a, 'e) = Ok('a) | Err('e)
 
-val parse_age : string -> result(int, "not a number" | "too young" | "not a valid age")
+val parse_age : string -> result(int, "NaN" | "young" | "old")
 let parse_age s =
   let n = parse_int s in
-  if n is Nil then Err("not a number")
-  else if n < 13 then Err("too young")
-  else if n > 130 then Err("not a valid age")
+  if n is Nil then Err("NaN")
+  else if n < 13 then Err("young")
+  else if n > 130 then Err("old")
   else Ok(n)
 
-val check_email : string -> result(string, "invalid email")
+val check_email : string -> result(string, "no @")
 let check_email s =
-  if contains (s, "@") then Ok(s) else Err("invalid email")
+  if contains (s, "@") then Ok(s) else Err("no @")
 
 let status r =
   match r with
   | Ok(_) -> 200
-  | Err("not a number") -> 400
+  | Err("NaN") -> 400
   | Err(_) -> 422
   end
 

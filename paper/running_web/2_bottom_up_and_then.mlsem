@@ -18,7 +18,7 @@
    with and_then, whose val line turns every message into a string, and
    field_of takes only the five messages:
      untypeable application:
-     function: "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
+     function: "NaN" | "young" | "old" | "no @" | "empty" -> "age" | "email" | "name"
      argument: string
    Goal: the errors as type variables, so that each message stays in the
    type:
@@ -34,7 +34,7 @@
       every message (code lens):
         validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
                           -> Ok({ age : int ; email : string ; name : 'a & string })
-                           | Err("not a number" | "too young" | "not a valid age" | "invalid email" | "name required")
+                           | Err("NaN" | "young" | "old" | "no @" | "empty")
 
    3. Bonus. Simplify (Type toolkit), whole line: 'c and 'd merged.
         val and_then : result('a, 'c) -> ('a -> result('b, 'c)) -> result('b, 'c)
@@ -52,17 +52,17 @@ val contains : (string, string) -> bool
 
 type result('a, 'e) = Ok('a) | Err('e)
 
-val parse_age : string -> result(int, "not a number" | "too young" | "not a valid age")
+val parse_age : string -> result(int, "NaN" | "young" | "old")
 let parse_age s =
   let n = parse_int s in
-  if n is Nil then Err("not a number")
-  else if n < 13 then Err("too young")
-  else if n > 130 then Err("not a valid age")
+  if n is Nil then Err("NaN")
+  else if n < 13 then Err("young")
+  else if n > 130 then Err("old")
   else Ok(n)
 
-val check_email : string -> result(string, "invalid email")
+val check_email : string -> result(string, "no @")
 let check_email s =
-  if contains (s, "@") then Ok(s) else Err("invalid email")
+  if contains (s, "@") then Ok(s) else Err("no @")
 
 val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
 let and_then r f =
@@ -74,27 +74,27 @@ let and_then r f =
 let validate_signup form =
   and_then (parse_age form.age) (fun age ->
     and_then (check_email form.email) (fun email ->
-      if length form.name < 1 then Err("name required")
+      if length form.name < 1 then Err("empty")
       else Ok({ name = form.name ; email = email ; age = age })))
 
 val status : Ok() | Err() -> int
 let status r =
   match r with
   | Ok(_) -> 200
-  | Err("not a number") -> 400
+  | Err("NaN") -> 400
   | Err(_) -> 422
   end
 
 let signup_status form = status (validate_signup form)
 
-val field_of : "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
+val field_of : "NaN" | "young" | "old" | "no @" | "empty" -> "age" | "email" | "name"
 let field_of e =
   match e with
-  | "not a number" -> "age"
-  | "too young" -> "age"
-  | "not a valid age" -> "age"
-  | "invalid email" -> "email"
-  | "name required" -> "name"
+  | "NaN" -> "age"
+  | "young" -> "age"
+  | "old" -> "age"
+  | "no @" -> "email"
+  | "empty" -> "name"
   end
 
 let error_field form =
