@@ -8,8 +8,11 @@
    Signature edited: the val line of insert.
    Start:
      val insert : tree(string) -> int -> string -> tree(string)
-   Problem: "let first" is an error. phone_book is built by insert, so it
-   is never empty, but the val line of insert does not say so:
+   Problem: the call min_binding phone_book (in "let first", the last
+   line) does not typecheck. min_binding takes only Node(...), and
+   phone_book has insert's result type, tree(string), which includes
+   Leaf. phone_book is never empty, but the val line of insert does not
+   say so:
      untypeable application:
      function: Node(x1) -> (int, 'I65) where x1 = Leaf | Node(x1), int, 'I65, Leaf | Node(x1)
      argument: tree(string)
@@ -22,9 +25,10 @@
         Node(tree(string), int, string, tree(string))   checks
       Pick Node(...):
         val insert : tree(string) -> int -> string -> Node(tree(string), int, string, tree(string))
-      The error on "let first" is gone. Node(...) is a part of tree(string)
-      and a type by itself; in ML, a non-empty tree needs a second tree
-      type and conversions.
+      phone_book now has the type Node(tree(string), int, string,
+      tree(string)), so the call min_binding phone_book typechecks.
+      Node(...) is a part of tree(string) and a type by itself; in ML, a
+      non-empty tree needs a second tree type and conversions.
 
    Polymorphic variant. From val insert : tree('a) -> int -> 'a -> tree('a),
    the same step gives
