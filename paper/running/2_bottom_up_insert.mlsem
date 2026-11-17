@@ -76,8 +76,9 @@
      (Node(x1) where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1))
 
    and the x1 after Node is the node's contents. Keeping that x1 as a
-   hole, Fill writes (Node(_) where x1 = ...), the where now unused;
-   deleting it by hand gives
+   hole, Fill writes (Node(_) where x1 = ...), the where now unused.
+   Simplify, under that result: Node(_) (unused definitions dropped);
+   Apply:
 
      val insert : tree('a) -> int -> 'a -> Node(_)
 
