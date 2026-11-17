@@ -7,7 +7,7 @@
    rejected (too young, not an email address).
 
    Operations used: Inline inferred type, Overload merging: Collapse,
-   Widen.
+   Widen. Bonus: Simplify.
 
    Signature edited: the val line of status (none at the start).
    Start, the inferred type (code lens):
@@ -34,6 +34,12 @@
         val status : Ok() | Err() -> int
       The three codes are forgotten too. The calls below still check:
       status takes any result, with the validators' literal messages.
+
+   4. Bonus. Simplify (Type toolkit), under Ok() | Err(): pick
+      result(any, any) (declared type).
+        val status : result(any, any) -> int
+      The same type, written with the declared name. (The code lens still
+      prints Ok() | Err() -> int.)
 *)
 
 val (<) : (int, int) -> bool
