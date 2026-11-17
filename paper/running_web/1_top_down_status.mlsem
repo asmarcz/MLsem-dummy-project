@@ -6,6 +6,9 @@
    read at all (the age is not a number), 422 for a field that is read but
    rejected (too young, not an email address).
 
+   Operations used: Inline inferred type, Overload merging: Collapse,
+   Widen.
+
    Signature edited: the val line of status (none at the start).
    Start, the inferred type (code lens):
      status : (Ok() -> 200) & (Err(~"not a number") -> 422) & (Err("not a number") -> 400)

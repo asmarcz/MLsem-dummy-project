@@ -2,6 +2,9 @@
 
    find t k looks key k up in the tree t; Nil when it is missing.
 
+   Operations used: Inline inferred type, Widen, Overload merging:
+   Collapse.
+
    Signature edited: the val line of find (none at the start).
    Start, the inferred type (code lens):
      find : ∀'a. (Node(x1) -> int -> Nil | 'a) & (Leaf -> any -> Nil)

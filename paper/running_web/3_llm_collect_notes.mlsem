@@ -10,6 +10,9 @@
      let field_errors form =
        collect [ parse_age form.age ; check_email form.email ]
 
+   Operations used: LLM inference. To fix other answers: Widen, Draft
+   holes: Fill all, Overload merging: Collapse, Simplify.
+
    Signature edited: the val line of collect (none at the start).
    Problem: without it, typechecking stops at the server's limit,
      Typechecking timed out after 10 s

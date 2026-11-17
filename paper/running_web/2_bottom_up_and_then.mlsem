@@ -8,6 +8,8 @@
    validator that gains a message makes the call to field_of fail until
    field_of handles it.
 
+   Operations used: Widen, Draft holes: Fill all. Bonus: Simplify.
+
    Signature edited: the val line of and_then.
    Start, the type Rust's Result<T, String> would give:
      val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)

@@ -5,6 +5,9 @@
    the type the phone book needs. min_binding takes only non-empty trees,
    Node(...).
 
+   Operations used: Narrow. Variant on min_binding: Draft holes: Fill all,
+   Narrow.
+
    Signature edited: the val line of insert.
    Start:
      val insert : tree(string) -> int -> string -> tree(string)
