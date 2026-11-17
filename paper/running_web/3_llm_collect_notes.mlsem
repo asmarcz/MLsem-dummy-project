@@ -1,102 +1,68 @@
-(* Scenario 3, LLM-assisted: notes for 3_llm_collect.mlsem.
+(* Scenario 3, LLM-assisted: collect. Notes for 3_llm_collect.mlsem.
 
-   That file is what the LLM is sent, whole: the result type and collect,
-   with no comment and no call site. Keep it that way; this file holds the
-   explanations.
+   3_llm_collect.mlsem is sent to the LLM whole, so it has no comment and
+   no call site; the explanations are here.
 
-   collect turns a list of results into one result: Ok of all the values
-   if every one is Ok, otherwise Err of all the error messages. Unlike
-   Rust's collect, and unlike validate_signup in scenario 2, it does not
-   stop at the first error: the sign-up form shows every invalid field at
-   once. In the project, with the validators of scenarios 1 and 2, it is
-   used as
-
+   collect turns a list of results into one: Ok of all the values if every
+   one is Ok, otherwise Err of all the messages. Unlike Rust's collect, it
+   does not stop at the first error: the sign-up form shows every invalid
+   field at once. In the project it is used as
      let field_errors form =
        collect [ parse_age form.age ; check_email form.email ]
 
-   With the val line of answer E below, its code lens reads
+   Signature edited: the val line of collect (none at the start).
+   Problem: without it, typechecking stops at the server's limit,
+     Typechecking timed out after 10 s
+   With a val line, the file checks in under 0.2 s.
+   Goal:
+     val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
+   With it, field_errors keeps every field's type and every message (code
+   lens):
      field_errors : { age : string ; email : string ..}
                     -> Ok([ (int | string)* ])
                      | Err([ ("not a number" | "too young" | "not a valid age" | "invalid email")+ ])
-   The fields need not have the same type, and every message is kept.
 
-   The problem. Without a val line, typechecking 3_llm_collect.mlsem stops
-   at the language server's default limit:
+   1. LLM inference (Type toolkit, or "MLsem: Infer type with LLM"),
+      cursor in collect. Each answer is checked; a rejected one goes back
+      to the LLM with its errors.
 
-     Typechecking timed out after 10 s
+   Answers an LLM may give, and the operations that fix them. They were
+   written by hand and checked; no LLM was called for these notes.
 
-   (The native checker did not finish either; it was stopped after 150 s.)
-   With any of the accepted val lines below, the file checks in 0.03 to
-   0.2 s.
+     A. val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e* ])
+        Accepted. Widen: _ for [ 'e* ]. Draft holes: Fill all gives the
+        goal: an Err always carries at least one message.
 
-   Running it. Cursor in collect, "MLsem: Infer type with LLM" (editor
-   title bar), or the LLM inference section of "MLsem: Type toolkit…".
-   Each answer is checked with the server's signature check; a rejected
-   one goes back to the LLM with its errors.
+     B. val collect : [ result(int, string)* ] -> result([ int* ], [ string* ])
+        Accepted, but monomorphic: field_errors fails (the email is a
+        string). Widen: _ for both ints and both strings. Draft holes:
+        Fill all:
+          val collect : [ result('a, 'b)* ] -> result([ 'a* ], [ 'b* ])
+        That is A (field_errors checks again), and A's steps follow.
 
-   Plausible answers, as the signature check judges them (each check takes
-   0.01 to 0.2 s), and how the toolkit improves them. All steps below were
-   replayed on 3_llm_collect.mlsem with the answer written above collect;
-   each ends with no error in the file.
+     C. val collect : [ result('a, 'e)* ] -> result([ 'a* ], 'e)
+        Rust's shape (stop at the first error). Rejected:
+          at `[e]`: untypeable coercion: expected: 'e given: [ 'e ]
+        If it is written in the file anyway: Widen: _ for the second 'e.
+        Draft holes: Fill all gives the goal directly.
 
-   A. The expected answer: accepted.
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e* ])
-      It can be sharpened. Widen: pick _ for [ 'e* ], Apply:
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], _)
-      Draft holes: Fill all:
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
-      An Err always carries at least one message.
+     C'. val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'b* ])
+        Rejected:
+          at `e`: untypeable coercion: expected: 'b given: 'e
+        Widen: _ for 'b. Draft holes: Fill all gives A.
 
-   B. Correct but monomorphic (the age field, its messages as strings):
-      accepted.
-        val collect : [ result(int, string)* ] -> result([ int* ], [ string* ])
-      In the project, field_errors then fails: the email is a string.
-      Improve it as in scenario 2. Widen: pick _ for both ints and both
-      strings; Apply:
-        val collect : [ result(_, _)* ] -> result([ _* ], [ _* ])
-      Draft holes: Fill all:
-        val collect : [ result('a, 'b)* ] -> result([ 'a* ], [ 'b* ])
-      That is answer A (field_errors checks again), and A's steps follow.
-
-   C. Rust's shape (stop at the first error): rejected.
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], 'e)
-      at `[e]`: untypeable coercion:
-      expected: 'e
-      given: [ 'e ]
-      The error goes back to the LLM. If it is written in the file instead,
-      Widen: pick _ for the second 'e, Apply:
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], _)
-      Draft holes shows [ 'e+ ]; Fill all:
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
-      Better than A: the wrong answer, with its wrong part left as a hole,
-      leads straight to the most precise type.
-
-   C'. A fresh variable for the errors: rejected.
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'b* ])
-      at `e`: untypeable coercion:
-      expected: 'b
-      given: 'e
-      Widen: pick _ for 'b, Apply, then Draft holes: Fill all gives
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e* ])
-
-   D. Two lines, the empty list spelled out: accepted.
-        val collect : [] -> Ok([])
+     D. val collect : [] -> Ok([])
         val collect : [ result('a, 'e)+ ] -> result([ 'a+ ], [ 'e+ ])
-      Overload merging, both lines selected, Collapse; Apply:
-        val collect : [ result('a, 'e)* ] -> Ok([ 'a+ ]) | Ok([  ]) | Err([ 'e+ ])
-      (Correct, but Ok([ 'a+ ]) | Ok([  ]) is Ok([ 'a* ]) written twice. Widen
-      offers nothing better for it; the Simplify section offers
-      result([ 'a* ], [ 'e+ ]) as "declared type".)
+        Accepted. Overload merging: Collapse, both lines selected:
+          val collect : [ result('a, 'e)* ] -> Ok([ 'a+ ]) | Ok([  ]) | Err([ 'e+ ])
+        Simplify, under Ok([ 'a+ ]) | Ok([  ]) | Err([ 'e+ ]): pick
+        result([ 'a* ], [ 'e+ ]) (declared type). That is the goal.
 
-   E. The most precise answer: accepted. It is what A and C reach.
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
+     E. The goal itself: accepted.
 
-   Not a val line at all, rejected with an error that does not say why:
-        val collect : result('a, 'e) list -> result('a list, 'e list)
-      at `'a list`: unexpected regular expression
-        val collect : list(result('a, 'e)) -> result(list('a), list('e))
-      Type list undefined!
-
-   No LLM was called for these notes: the answers above were written by
-   hand and only checked.
+     Not a val line at all, rejected with an error that does not say why:
+       val collect : result('a, 'e) list -> result('a list, 'e list)
+         at `'a list`: unexpected regular expression
+       val collect : list(result('a, 'e)) -> result(list('a), list('e))
+         Type list undefined!
 *)

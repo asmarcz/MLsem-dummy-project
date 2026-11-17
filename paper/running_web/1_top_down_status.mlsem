@@ -1,58 +1,36 @@
-(* Scenario 1, top to bottom: from the inferred type to the intended one.
+(* Scenario 1, top to bottom: status.
 
-   The sign-up endpoint of a web backend validates each form field into a
-   result, as in Rust or TypeScript: Ok(value) or Err(message). The
-   validators keep their messages in their types (scenario 2 relies on
-   this). status turns a result into the HTTP status code of the
-   response: 200 for Ok; 400 for a malformed request, a field that
-   cannot be read at all (the age is not a number); 422 for a field that
-   is read but rejected (too young, not an email address).
+   The sign-up endpoint validates each form field into a result, as in
+   Rust: Ok(value) or Err(message). status turns a result into the HTTP
+   status code of the response: 200 for Ok, 400 for a field that cannot be
+   read at all (the age is not a number), 422 for a field that is read but
+   rejected (too young, not an email address).
 
-   Without a val line, MLsem infers (code lens above status):
-
+   Signature edited: the val line of status (none at the start).
+   Start, the inferred type (code lens):
      status : (Ok() -> 200) & (Err(~"not a number") -> 422) & (Err("not a number") -> 400)
-
    (Ok() is Ok of anything; ~"not a number" is anything but that string.)
-   It is exact, and it is information: a caller could rely on "not a
-   number" giving 400, and on there being three codes. But the endpoint
-   should not promise which message gives which code: messages are
-   reworded, and a new check (say, an email already taken: 409) brings a
-   new code. The intent is result(any, any) -> int: any result, a code.
+   Problem: the inferred type is exact but promises too much: which
+   message gives which code, and that there are three codes. Messages get
+   reworded, and a new check brings a new code.
+   Goal:
+     val status : Ok() | Err() -> int
+   Ok() | Err() is result(any, any): any result, a code.
 
-   Operations used: Inline inferred type, Overload merging: Collapse,
-   Widen.
-
-   Steps (each checks: no error in the file afterwards).
-
-   1. Ctrl+. on "let status", quick action "Inline inferred type". It
-      writes one val line per case:
-
+   1. Inline inferred type (Ctrl+. on "let status"):
         val status : Ok() -> 200
         val status : Err(~"not a number") -> 422
         val status : Err("not a number") -> 400
 
-   2. "MLsem: Type toolkit…", section Overload merging: select the three
-      lines. Click Apply under Collapse:
-
+   2. Overload merging: Collapse (Type toolkit), the three lines selected:
         val status : Ok() | Err() -> 200 | 400 | 422
+      The smallest single arrow containing the three lines: which input
+      gives which output is forgotten.
 
-      Collapse writes the smallest single arrow containing the three
-      lines: it forgets which input gives which output, exactly what the
-      endpoint should not promise. Widen then forgets the three codes.
-
-   3. Section Widen. Click under 200 | 400 | 422 (the whole result) and
-      pick int, then Apply:
-
+   3. Widen (Type toolkit), under 200 | 400 | 422: pick int.
         val status : Ok() | Err() -> int
-
-      Ok() | Err() is result(any, any): status takes any result,
-      including those of parse_age and check_email with their literal
-      messages, so the calls below still check.
-
-   Final state:
-
-     val status : Ok() | Err() -> int
-     let status r = ...
+      The three codes are forgotten too. The calls below still check:
+      status takes any result, with the validators' literal messages.
 *)
 
 val (<) : (int, int) -> bool

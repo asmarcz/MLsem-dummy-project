@@ -1,94 +1,78 @@
-(* Scenario 2, bottom to top: from a naive type to a general one.
-
-   The validators of the sign-up form keep their messages in their types,
-   as in scenario 1: the error type of parse_age is the union of its
-   three messages. No error type is declared anywhere.
+(* Scenario 2, bottom to top: and_then.
 
    and_then r f chains validations (Rust's Result::and_then): if r is
    Ok(x) it continues with f x, otherwise it passes the error on. The
-   author wrote its type as Rust code with Result<T, String> would:
+   validators keep their messages in their types: the error type of
+   parse_age is the union of its three messages. field_of maps each
+   message to its form field, one case per message and no catch-all, so a
+   validator that gains a message makes the call to field_of fail until
+   field_of handles it.
 
+   Signature edited: the val line of and_then.
+   Start, the type Rust's Result<T, String> would give:
      val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
-
-   validate_signup chains the age, the email and the name, and status
-   (from scenario 1) gives the response's code. It checks, but the code
-   lens of validate_signup shows that every message is now just a string:
-
-     validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
-                       -> Ok({ age : int ; email : string ; name : 'a & string }) | Err(string)
-
-   A new call site: the sign-up page highlights the input that is wrong.
-   field_of maps each message to its field, one case per message and no
-   catch-all, so a new message without a field is a type error. The call
-   in "let error_field" is an error:
-
+   Problem: the call field_of e (in "let error_field", the last
+   definition) does not typecheck. validate_signup chains the validators
+   with and_then, whose val line turns every message into a string, and
+   field_of takes only the five messages:
      untypeable application:
      function: "not a number" | "too young" | "not a valid age" | "invalid email" | "name required" -> "age" | "email" | "name"
      argument: string
+   Goal:
+     val and_then : result('a, 'c) -> ('a -> result('b, 'c)) -> result('b, 'c)
+   Step 2 reaches an equivalent type; the bonus step writes this one.
 
-   Operations used: Widen (to a hole), Draft holes: Fill all.
-
-   Steps (each checks: no error in the file afterwards).
-
-   1. "MLsem: Type toolkit…", section Widen. Under the val line, click
-      each string (three of them) and pick the hole _ (the last option).
-      Apply:
-
+   1. Widen (Type toolkit), under each of the three strings: pick the hole _.
         val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
+      A draft: its holes are inferred from the body. The error is gone.
 
-      The line is now a draft: its holes are inferred from the body. The
-      error in error_field is gone; its code lens reads
-      error_field : { age : string ; email : string ; name : string ..} -> Nil | ("age" | "email" | "name").
-
-   2. Section Draft holes shows the holes filled. Click Fill all:
-
+   2. Draft holes: Fill all:
         val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
-
       The errors of r and those of f, as a union. validate_signup keeps
       every message (code lens):
-
         validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
                           -> Ok({ age : int ; email : string ; name : 'a & string })
                            | Err("not a number" | "too young" | "not a valid age" | "invalid email" | "name required")
 
-      In the outer call, 'd is "not a number" | "too young" | "not a
-      valid age" (from parse_age) and 'c is "invalid email" | "name
-      required" (from the inner call). From now on, a validator that gains a message, say
-      Err("email too long") in check_email (its val line removed),
-      makes the call to field_of fail, with the new message in the
-      argument type.
+   3. Bonus. Simplify (Type toolkit), whole line: 'c and 'd merged.
+        val and_then : result('a, 'c) -> ('a -> result('b, 'c)) -> result('b, 'c)
+      The same type with one variable for the errors: result is
+      covariant, so taking 'd | 'c for 'c fits every use of step 2's line.
+      It is Rust's and_then (OCaml's Result.bind), with the union of
+      literal messages as the error type instead of a declared enum.
 
-   The new type is strictly more general than the naive one. It is
-   Rust's and_then (OCaml's Result.bind), result('a, 'e) -> ('a ->
-   result('b, 'e)) -> result('b, 'e), with the errors written as a union; in MLsem the two
-   are equivalent (result is covariant: each instantiates to fit the
-   other). What differs from Rust is the error type: there, the messages
-   would be an enum declared for the purpose; here the union of literal
-   messages is the error type, and the generic and_then carries it
-   through the chain.
-
-   Final state:
-
-     val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
-     let and_then r f = ...
-
-   Pitfall: a type written for a first use on ints,
+   Variant: a type written for ints.
+   Start:
      val and_then : result(int, string) -> (int -> result(int, string)) -> result(int, string)
-   also fails on the inner call (its payload is a string). Picking _ for
-   every int and every string makes the draft need one line per case of
-   r; Fill all and split then writes
+   Problem: the inner call in validate_signup fails too (its payload is a
+   string):
+     untypeable application:
+     function: result(int, string) -> (int -> result(int, string)) -> result(int, string)
+     argument: result(string, "invalid email")
+
+   1. Widen, under the four ints and the last two strings: pick _.
+        val and_then : result(_, string) -> (_ -> result(_, _)) -> result(_, _)
+
+   2. Draft holes: Fill all:
+        val and_then : result('c, string) -> ('c -> result('a, 'b)) -> result('a, string | 'b)
+      The call to field_of still fails: the first string is left.
+
+   3. Widen, under the two strings: pick _.
+        val and_then : result('c, _) -> ('c -> result('a, 'b)) -> result('a, _ | 'b)
+
+   4. Draft holes: Fill all:
+        val and_then : result('c, 'd) -> ('c -> result('a, 'b)) -> result('a, 'd \ 'b | 'b)
+
+   5. Bonus. Simplify, whole line: 'b and 'd merged.
+        val and_then : result('c, 'b) -> ('c -> result('a, 'b)) -> result('a, 'b)
+
+   Picking _ for every int and string at once does not work: the draft
+   needs one line per case of r, and Fill all splits it into
      val and_then : result('c, empty) -> ('c -> result('a, 'b)) -> result('a, 'b)
      val and_then : result(empty, 'a) -> (empty -> result(any, any)) -> result(empty, 'a)
-   and error_field still fails: the val lines of a definition share their
-   type variables, so the error type 'a of the second line becomes the
-   success type 'a of the first. Picking the ints and the last two
-   strings first, then the remaining string, works but takes four steps
-   and ends with result('c, 'd) -> ('c -> result('a, 'b)) -> result('a, 'd \ 'b | 'b).
-
-   (The quick fixes on the failing call, Ctrl+. on it, change field_of,
-   not and_then: "Add overload: val field_of : string -> _" and "Widen
-   domain: val field_of : "not a number" | ... | string -> _". Both fail
-   in field_of: its match has no case for the other strings.)
+   and the call to field_of fails again: the val lines of a definition
+   share their type variables, so the error 'a of the second line is the
+   success 'a of the first.
 *)
 
 val (<) : (int, int) -> bool
