@@ -1,98 +1,48 @@
-(* Scenario 3, LLM-assisted: notes for 3_llm_insert.mlsem.
+(* Scenario 3, LLM-assisted: insert. Notes for 3_llm_insert.mlsem.
 
-   That file is what the LLM is sent, whole: two operators, the tree type
-   and insert, with no comment and no call site. Keep it that way; this
-   file holds the explanations.
+   3_llm_insert.mlsem is sent to the LLM whole, so it has no comment and
+   no call site; the explanations are here.
 
-   The problem. Without a val line, typechecking 3_llm_insert.mlsem stops
-   at the language server's default limit:
-
+   Signature edited: the val line of insert (none at the start).
+   Problem: without it, typechecking stops at the server's limit,
      Typechecking timed out after 10 s
+   (the native checker needs about 16 s). With a val line, the file
+   checks in about 0.02 s.
+   Goal:
+     val insert : tree('a) -> int -> 'a -> tree('a)
 
-   (The native checker needs about 16 s for this file; it infers an
-   intersection of 5 arrows with 8 type variables and 6 where definitions,
-   about 1600 characters.) The same file checks in about 0.02 s once
-   insert has a val line.
+   1. LLM inference (Type toolkit, or "MLsem: Infer type with LLM"),
+      cursor in insert. Each answer is checked; a rejected one goes back
+      to the LLM with its errors. Actual run, claude-haiku-5-5,
+      2026-11-15, 2 requests:
+        try 1, rejected (one tuple argument for a curried function):
+          val insert : (tree('a), int, 'a) -> tree('a)
+          at `t`: untypeable cast: expected: empty, given: tree('a), int, 'a
+        try 2, accepted:
+          val insert : tree('a) -> int -> 'a -> tree('a)
 
-   Running it. Cursor in insert, "MLsem: Infer type with LLM" (editor title
-   bar), or the LLM inference section of "MLsem: Type toolkit…". Besides
-   the file, the prompt says: "Typechecking this file as it is does not
-   succeed: Typechecking timed out after 10 s. It is not known in which
-   definition." Each answer is checked with the server's signature check;
-   a rejected one goes back to the LLM with its errors.
-
-   Plausible answers, as the signature check judges them (each check takes
-   0.01 to 0.02 s), and how the toolkit improves them. All steps below were
-   replayed on 3_llm_insert.mlsem with the answer written above insert.
-
-   A. The expected answer: accepted.
-        val insert : tree('a) -> int -> 'a -> tree('a)
-
-   B. Correct but monomorphic: accepted.
-        val insert : tree(int) -> int -> int -> tree(int)
-      Make it polymorphic. Widen: pick _ for the int inside the
-      first tree(int), for the value int and for the int inside the result
-      tree(int); Apply:
-        val insert : tree(_) -> int -> _ -> tree(_)
-      Draft holes: Fill all:
-        val insert : tree('b) -> int -> 'a -> tree('b | 'a)
-      An answer with any in those three places,
-        val insert : tree(any) -> int -> any -> tree(any)
-      is accepted too and goes the same way (Widen offers _ for any).
-
-   C. Over-general: the key polymorphic. Rejected:
-        val insert : tree('a) -> 'k -> 'a -> tree('a)
-      at `k`: untypeable coercion:
-      expected: int
-      given: 'k
-      The error goes back to the LLM. If it is written in the file instead,
-      Widen: pick _ for 'k, Apply:
-        val insert : tree('a) -> _ -> 'a -> tree('a)
-      Draft holes shows int; Fill all:
-        val insert : tree('a) -> int -> 'a -> tree('a)
-
-   C'. Over-general: a second variable for the value. Rejected:
-        val insert : tree('a) -> int -> 'b -> tree('a)
-      at `v`: untypeable coercion:
-      expected: 'a
-      given: 'b
-      Widen: pick _ for 'b, Apply, then Draft holes: Fill all gives
-        val insert : tree('a) -> int -> 'a -> tree('a)
-      (Picking _ for the result tree('a) instead is no help: the check
-      takes about 3 s, and the hole is exact but unreadable,
-        x2 where x1 = Leaf | Node(x1, int, 'a, x1)
-             and x2 = Node((x1, int, 'b, x1) | (x1, int, 'a, x2) | (x2, int, 'a, x1))
-      Fill all writes a line that checks.)
-
-   D. Two lines, the empty tree spelled out: accepted.
-        val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
-        val insert : tree('a) -> int -> 'a -> tree('a)
-      Overload merging, both lines selected, Collapse; Apply:
-        val insert : tree('a) -> int -> 'a -> tree('a)
-      That is answer A. Collapse loses what the first line adds (an empty
-      tree becomes a single node), as it always loses which input gives
-      which output.
-
-   E. Two variables: accepted. It is what B reaches.
-        val insert : tree('a) -> int -> 'b -> tree('a | 'b)
-      It is equivalent to A, not more general: tree is covariant, so each
-      instantiates to fit the other.
-
-   Not a val line at all: OCaml syntax is rejected with a confusing error.
-        val insert : 'a tree -> int -> 'a -> 'a tree
-      at `'a tree`: unexpected regular expression
-
-   Actual run, 2026-11-15, claude-haiku-5-5 through the extension's own
-   logic (2 requests):
-     try 1, rejected:
-        val insert : (tree('a), int, 'a) -> tree('a)
-      at `t`: untypeable cast: expected: empty, given: tree('a), int, 'a
-     try 2, accepted (answer A):
-        val insert : tree('a) -> int -> 'a -> tree('a)
-   Haiku first wrote one tuple argument for the curried function; the
-   checker's error was enough for it to correct itself. From answer A, the
-   step of 2_bottom_up_insert.mlsem (its polymorphic alternative: Narrow
-   the result tree('a) to Node(tree('a), int, 'a, tree('a)), which
-   checks) gives a type that says insert never returns Leaf:
+   2. Optional, as in scenario 2. Narrow, under the result tree('a): pick
+      Node(tree('a), int, 'a, tree('a)) (checks):
         val insert : tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
+
+   Other answers an LLM may give, and the operations that fix them:
+
+     val insert : tree(int) -> int -> int -> tree(int)
+       Accepted, but monomorphic. Widen: _ for the int in tree(int), the
+       value int and the int in the result tree(int). Draft holes: Fill all:
+         val insert : tree('b) -> int -> 'a -> tree('b | 'a)
+       (equivalent to the goal: tree is covariant).
+
+     val insert : tree('a) -> 'k -> 'a -> tree('a)
+       Rejected at `k` (expected: int). Widen: _ for 'k. Draft holes:
+       Fill all gives the goal.
+
+     val insert : tree('a) -> int -> 'b -> tree('a)
+       Rejected at `v` (expected: 'a). Widen: _ for 'b. Draft holes:
+       Fill all gives the goal.
+
+     val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
+     val insert : tree('a) -> int -> 'a -> tree('a)
+       Accepted. Overload merging: Collapse, both lines selected, gives
+       the goal.
 *)

@@ -1,67 +1,29 @@
-(* Scenario 1, top to bottom: from the inferred type to the intended one.
+(* Scenario 1, top to bottom: find.
 
-   find looks a key up in a binary search tree used as a map; it gives Nil
-   when the key is missing. The tree comes first (find t k), as in
-   Map.find m k.
+   find t k looks key k up in the tree t; Nil when it is missing.
 
-   Without a val line, MLsem infers (code lens above find):
-
+   Signature edited: the val line of find (none at the start).
+   Start, the inferred type (code lens):
      find : ∀'a. (Node(x1) -> int -> Nil | 'a) & (Leaf -> any -> Nil)
             where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+   Goal:
+     val find : tree('a) -> int -> Nil | 'a
+   The inferred type is exact but spells out the tree's structure and
+   splits off the empty tree.
 
-   It is exact, but it shows the internals: the structure of the tree is
-   spelled out instead of the declared type tree('a), and there are two
-   cases (on an empty tree the key may be anything, not only an int). The
-   intent is tree('a) -> int -> Nil | 'a.
-
-   Operations used: Inline inferred type, Widen, Overload merging:
-   Collapse.
-
-   Steps (each checks: no error in the file afterwards).
-
-   1. Ctrl+. on "let find", quick action "Inline inferred type". It writes
-      one val line per overload:
-
+   1. Inline inferred type (Ctrl+. on "let find"):
         val find : Node(x1) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
         val find : Leaf -> any -> Nil
 
-   2. "MLsem: Type toolkit…", section Widen. On the first line, click under
-      Node(x1) (the first argument) and pick tree('a), then Apply:
-
-        val find : tree('a) -> int -> Nil | 'a where x1 = Leaf | Node(x1), int, 'a, Leaf | Node(x1)
+   2. Widen (Type toolkit), first line, under Node(x1): pick tree('a).
+        val find : tree('a) -> int -> Nil | 'a where x1 = ...
         val find : Leaf -> any -> Nil
+      tree('a) is the declared type that contains Node(x1); it also
+      admits Leaf.
 
-      Widen recognises the declared type and finds its argument 'a (the
-      tightest tree(...) that contains Node(x1)). tree('a) is wider than
-      Node(x1): it also admits Leaf. The where definition is no longer
-      used (the code lens already leaves it out); the next step drops it.
-
-   3. Section Overload merging: select both lines. The Collapse preview is
-      the smallest single arrow containing them; click Apply under Collapse:
-
+   3. Collapse (Type toolkit, Overload merging), both lines selected:
         val find : tree('a) -> int -> Nil | 'a
-
-      The Leaf case (any key, result Nil) is inside the first line, once the
-      key is an int: Collapse keeps what both lines promise for an int key.
-      (Generalize on the same two lines offers tree('a) -> any -> Nil | 'a,
-      marked stronger, but its check fails at k < k': the key must be an
-      int. Collapse always holds.)
-
-   Final state:
-
-     val find : tree('a) -> int -> Nil | 'a
-     let find t k = ...
-
-   Alternative: with call sites. Under each line, section Type variable
-   instantiation shows the instance that the call below uses, after every
-   step: 'a = "Alice" | "Bob" for find phone_book 2. Setting 'a to string
-   there and Apply specialises find to the phone book, but writes the
-   structure again instead of the name:
-
-     val find : x1 -> int -> Nil | string where x1 = Leaf | Node(x1, int, string, x1)
-
-   (Simplify then offers tree(string) for x1, "declared type", and after
-   that the whole type without the unused where, "any step".)
+      The Leaf line is inside the first one once the key is an int.
 *)
 
 val (=) : ('a, 'a) -> bool
