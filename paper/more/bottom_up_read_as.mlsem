@@ -8,11 +8,11 @@
 
    Steps (open MLsem: Type toolkit... with the cursor on read_as):
 
-   1. Widen: pick _ (hole) under the domain "int" | "bool" | "string", and
+   1. Widen: pick _ (wildcard) under the domain "int" | "bool" | "string", and
       _ under the rest of the type, string -> int | bool | string; Apply:
         val read_as : _ -> _
 
-   2. Draft holes: the line has three rows, one per overload of the body:
+   2. Partial signatures: the line has three rows, one per overload of the body:
         "string"  'a -> 'a
         "bool"    string -> bool
         "int"     string -> int
@@ -35,7 +35,7 @@
    val read_as : "int" -> string -> int
    let read_as kind s = ...
 
-   Holes must replace the domain too: with `_ -> string -> _` the rows are
+   Wildcards must replace the domain too: with `_ -> string -> _` the rows are
    "string", "int" | "string", "bool" and "int" | "bool" (no row for "int"
    alone), and with `"int" | "bool" | "string" -> _` there is one row, the
    union again. *)

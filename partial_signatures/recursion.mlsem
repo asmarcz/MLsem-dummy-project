@@ -1,12 +1,13 @@
-(* Recursive drafts. In its body, a draft has the draft type, and its holes
-   are shared by all the recursive calls. Drafts that call each other must be
-   in one let ... and ... *)
+(* Recursive partial signatures. In its body, a definition with a partial
+   signature has the partial type, and its wildcards are shared by all the
+   recursive calls. Definitions with partial signatures that call each other
+   must be in one let ... and ... *)
 
 val (+) : (int, int) -> int
 val (-) : (int, int) -> int
 val (=) : ('a, 'a) -> bool
 
-(* ===== Without drafts ===== *)
+(* ===== Without partial signatures ===== *)
 
 (* expected: len1 : [ any* ] -> int *)
 val len1 : [any*] -> int
@@ -15,7 +16,7 @@ let len1 l = match l with [] -> 0 | _::xs -> 1 + len1 xs end
 (* No val. expected: len2 : ([ any+ ] -> int) & ([  ] -> 0) *)
 let len2 l = match l with [] -> 0 | _::xs -> 1 + len2 xs end
 
-(* ===== Drafts ===== *)
+(* ===== Partial signatures ===== *)
 
 (* expected: len3 : [ any* ] -> int *)
 val len3 : [any*] -> _
@@ -37,27 +38,27 @@ let bad x = (bad x) + true
 
 (* ===== Mutual recursion ===== *)
 
-(* A complete val and a draft.
+(* A complete val and a partial one.
    expected: even : int -> bool, odd : int -> bool *)
 val even : int -> bool
 val odd : int -> _
 let even n = if n = 0 then true else odd (n - 1)
 and odd n = if n = 0 then false else even (n - 1)
 
-(* Two drafts. expected: even2 : int -> bool, odd2 : int -> bool *)
+(* Two partial signatures. expected: even2 : int -> bool, odd2 : int -> bool *)
 val even2 : int -> _
 val odd2 : _ -> bool
 let even2 n = if n = 0 then true else odd2 (n - 1)
 and odd2 n = if n = 0 then false else even2 (n - 1)
 
-(* Drafts are checked first, so loop can use one.
+(* Partial signatures are checked first, so loop can use one.
    expected: one : 1, loop : int -> int *)
 val one : _
 val loop : int -> int
 let one = 1
 and loop n = if n = 0 then one else loop (n - 1)
 
-(* ===== Shared holes are less precise ===== *)
+(* ===== Shared wildcards are less precise ===== *)
 
 (* A complete val: each call picks its own 'a.
    expected: twice_id : 'a -> 'a *)
@@ -68,7 +69,7 @@ let twice_id x =
   let b = twice_id true in
   x
 
-(* A hole: both calls share it, so it collects 1 | true.
+(* A wildcard: both calls share it, so it collects 1 | true.
    expected with the val: twice_draft : 'a -> 1 | true | 'a
    expected without:      twice_draft : 1 | true | 'a -> 1 | true | 'a *)
 (* val twice_draft : _ -> _ *)

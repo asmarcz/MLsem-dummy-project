@@ -4,7 +4,7 @@
    no call site; the explanations are here.
 
    Operations used: LLM inference; optionally Narrow. To fix other
-   answers: Widen, Draft holes: Fill all, Overload merging: Collapse.
+   answers: Widen, Partial signatures: Fill all, Overload merging: Collapse.
 
    Signature edited: the val line of insert (none at the start).
    Problem: without it, typechecking stops at the server's limit,
@@ -41,17 +41,18 @@
 
      val insert : tree(int) -> int -> int -> tree(int)
        Accepted, but monomorphic. Widen: _ for the int in tree(int), the
-       value int and the int in the result tree(int). Draft holes: Fill all:
+       value int and the int in the result tree(int). Partial signatures:
+       Fill all:
          val insert : tree('b) -> int -> 'a -> tree('b | 'a)
        (equivalent to the goal: tree is covariant).
 
      val insert : tree('a) -> 'k -> 'a -> tree('a)
-       Rejected at `k` (expected: int). Widen: _ for 'k. Draft holes:
-       Fill all gives the goal.
+       Rejected at `k` (expected: int). Widen: _ for 'k. Partial
+       signatures: Fill all gives the goal.
 
      val insert : tree('a) -> int -> 'b -> tree('a)
-       Rejected at `v` (expected: 'a). Widen: _ for 'b. Draft holes:
-       Fill all gives the goal.
+       Rejected at `v` (expected: 'a). Widen: _ for 'b. Partial
+       signatures: Fill all gives the goal.
 
      val insert : Leaf -> int -> 'a -> Node(Leaf, int, 'a, Leaf)
      val insert : tree('a) -> int -> 'a -> tree('a)

@@ -1,10 +1,10 @@
-(* Draft signatures: _ in a val is a hole. The definition is checked against
-   the draft, and its type, with the holes filled in, enters the
-   environment. *)
+(* Partial signatures: _ in a val is a wildcard. The definition is checked
+   against the partial signature, and its type, with the wildcards filled in,
+   enters the environment. *)
 
 val (+) : (int, int) -> int
 
-(* ===== Holes ===== *)
+(* ===== Wildcards ===== *)
 
 (* expected: succ : int -> int *)
 val succ : _ -> int
@@ -14,17 +14,17 @@ let succ x = x + 1
 val tag_true : int -> _
 let tag_true x = (x, true)
 
-(* Each _ is a separate hole.
+(* Each _ is a separate wildcard.
    expected: pair : int -> bool -> (int, bool) *)
 val pair : _ -> _ -> (int, bool)
 let pair x y = (x + 1, y)
 
-(* A weak variable is a named hole: same name, same hole.
+(* A weak variable is a named wildcard: same name, same wildcard.
    expected: g : 'a -> 'a *)
 val g : '_a -> '_a
 let g x = x
 
-(* One hole makes the whole overloaded signature a draft.
+(* One wildcard makes the whole overloaded signature partial.
    expected: f : (int -> int) & (bool -> true) *)
 val f : int -> int
 val f : bool -> _
@@ -35,7 +35,7 @@ let f x = if x is int then x + 1 else true
 val succ_rigid : 'a -> int
 let succ_rigid x = x + 1
 
-(* ===== Using drafts ===== *)
+(* ===== Using partial signatures ===== *)
 
 (* expected: use_succ : int *)
 let use_succ = succ 41
@@ -46,7 +46,7 @@ let use_early = double 2
 val double : int -> int
 let double x = x + x
 
-(* A draft cannot.
+(* A partial signature cannot.
    expected: too_early: unbound variable h *)
 let too_early = h 1
 val h : int -> _
@@ -63,8 +63,8 @@ let len l =
 
 (* ===== Not supported ===== *)
 
-(* A mutable variable cannot have a draft. The error stops the file, so it
-   is commented out.
+(* A mutable variable cannot have a partial signature. The error stops the
+   file, so it is commented out.
 
 val mut m : _
 *)

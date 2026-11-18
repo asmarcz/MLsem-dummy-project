@@ -8,7 +8,7 @@
    validator that gains a message makes the call to field_of fail until
    field_of handles it.
 
-   Operations used: Widen, Draft holes: Fill all. Bonus: Simplify.
+   Operations used: Widen, Partial signatures: Fill all. Bonus: Simplify.
 
    Signature edited: the val line of and_then.
    Start, the type Rust's Result<T, String> would give:
@@ -24,11 +24,13 @@
    type:
      val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
 
-   1. Widen (Type toolkit), under each of the three strings: pick the hole _.
+   1. Widen (Type toolkit), under each of the three strings: pick the
+      wildcard _.
         val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
-      A draft: its holes are inferred from the body. The error is gone.
+      A partial signature: its wildcards are inferred from the body. The
+      error is gone.
 
-   2. Draft holes: Fill all:
+   2. Partial signatures: Fill all:
         val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
       The errors of r and those of f, as a union. validate_signup keeps
       every message (code lens):
@@ -64,7 +66,7 @@ val check_email : string -> result(string, "no @")
 let check_email s =
   if contains (s, "@") then Ok(s) else Err("no @")
 
-val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
+val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
 let and_then r f =
   match r with
   | Ok(x) -> f x

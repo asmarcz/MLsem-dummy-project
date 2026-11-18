@@ -5,8 +5,8 @@
    the type the phone book needs. min_binding takes only non-empty trees,
    Node(...).
 
-   Operations used: Narrow. Variant on min_binding: Draft holes: Fill all,
-   Narrow.
+   Operations used: Narrow. Variant on min_binding: Partial signatures:
+   Fill all, Narrow.
 
    Signature edited: the val line of insert.
    Start:
@@ -38,10 +38,10 @@
      val insert : tree('a) -> int -> 'a -> Node(tree('a), int, 'a, tree('a))
 
    Variant on min_binding. Signature edited: the val line of min_binding.
-   Start, a draft with the key and the value fixed:
+   Start, a partial signature with the key and the value fixed:
      val min_binding : Node(_, int, 'a, _) -> (int, 'a)
 
-   1. Draft holes: Fill all:
+   1. Partial signatures: Fill all:
         val min_binding : Node((x1 where x1 = Leaf | Node(x1, int, 'a, any)), int, 'a, any) -> (int, 'a)
       Exact: min_binding never looks at a right subtree, so right
       subtrees may be anything.

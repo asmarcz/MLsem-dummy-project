@@ -37,8 +37,8 @@
 (* expected: [ '_h: '_h & int ], i.e. anything below int *)
 ## { '_h <= int }
 
-(* What a hole must be for a definition to fit its draft: the inferred type
-   on the left, the draft on the right. *)
+(* What a wildcard must be for a definition to fit its partial signature:
+   the inferred type on the left, the partial signature on the right. *)
 
 (* succ: int -> int against _ -> int.
    expected: [ '_h: '_h & int ], below int *)
@@ -48,5 +48,5 @@
    expected: [ '_h: (int, true) | '_h ], above (int, true) *)
 ## { int -> (int, true) <= int -> '_h }
 
-(* With a fixed 'h instead of a hole. expected: no solution *)
+(* With a fixed 'h instead of a wildcard. expected: no solution *)
 ## { int -> int <= 'h -> int }

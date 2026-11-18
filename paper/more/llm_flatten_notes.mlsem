@@ -25,9 +25,10 @@
    Step 2, if the answer is the first, coarse one (it does not say that
    the result is flat):
      a. Widen: click under the result [ any* ] (the second one), pick _
-        (hole), Apply:
+        (wildcard), Apply:
           val flatten : [ any* ] -> _
-     b. Draft holes: the hole is [ (~[ any* ])* ] (found in about 1 s);
+     b. Partial signatures: the wildcard is [ (~[ any* ])* ] (found in
+        about 1 s);
         Fill:
           val flatten : [ any* ] -> [ (~[ any* ])* ]
 
@@ -37,7 +38,8 @@
    let flatten l = ...
 
    "a list of anything gives a list without lists". With the domain from
-   the third answer, the draft `x -> _ where x = [ ('a \ [ any* ] | x)* ]`
+   the third answer, the partial signature
+   `x -> _ where x = [ ('a \ [ any* ] | x)* ]`
    fills to [ ('a \ [ any* ])* ].
 
    Actual runs, 2026-11-15, through the extension's own logic.

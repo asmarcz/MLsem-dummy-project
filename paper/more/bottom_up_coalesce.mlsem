@@ -15,7 +15,7 @@
    2. Widen: click under "localhost", pick string, Apply:
         val coalesce : (Nil | string, string) -> _
 
-   3. Draft holes: the hole is string; Fill all:
+   3. Partial signatures: the wildcard is string; Fill all:
         val coalesce : (Nil | string, string) -> string
 
    4. Overload merging: tick both lines.

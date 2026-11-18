@@ -16,7 +16,7 @@
       Apply:
         val greeting : { name : string; email : string } | { name : string; email : string; title : string } -> _
 
-   3. Draft holes: the hole is string; Fill all:
+   3. Partial signatures: the wildcard is string; Fill all:
         val greeting : { name : string; email : string } | { name : string; email : string; title : string } -> string
 
    4. Extract repeated parts: click the part { name : string; email : string }
