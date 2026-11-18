@@ -12,7 +12,7 @@
 
    Signature edited: the val line of and_then.
    Start, the type Rust's Result<T, String> would give:
-     val and_then : result('a, string) -> ('a -> result('b, string)) -> result('b, string)
+     val and_then : res('a, string) -> ('a -> res('b, string)) -> res('b, string)
    Problem: the call field_of e (in "let error_field", the last
    definition) does not typecheck. validate_signup chains the validators
    with and_then, whose val line turns every message into a string, and
@@ -22,16 +22,16 @@
      argument: string
    Goal: the errors as type variables, so that each message stays in the
    type:
-     val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
+     val and_then : res('a, 'd) -> ('a -> res('b, 'c)) -> res('b, 'd | 'c)
 
    1. Widen (Type toolkit), under each of the three strings: pick the
       wildcard _.
-        val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
+        val and_then : res('a, _) -> ('a -> res('b, _)) -> res('b, _)
       A partial signature: its wildcards are inferred from the body. The
       error is gone.
 
    2. Partial signatures: Fill all:
-        val and_then : result('a, 'd) -> ('a -> result('b, 'c)) -> result('b, 'd | 'c)
+        val and_then : res('a, 'd) -> ('a -> res('b, 'c)) -> res('b, 'd | 'c)
       The errors of r and those of f, as a union. validate_signup keeps
       every message (code lens):
         validate_signup : ∀'a. { age : string ; email : string ; name : 'a & string ..}
@@ -39,8 +39,8 @@
                            | Err("NaN" | "young" | "old" | "no @" | "no name")
 
    3. Bonus. Simplify (Type toolkit), whole line: 'c and 'd merged.
-        val and_then : result('a, 'c) -> ('a -> result('b, 'c)) -> result('b, 'c)
-      The same type with one variable for the errors: result is
+        val and_then : res('a, 'c) -> ('a -> res('b, 'c)) -> res('b, 'c)
+      The same type with one variable for the errors: res is
       covariant, so taking 'd | 'c for 'c fits every use of step 2's line.
       It is Rust's and_then (OCaml's Result.bind), with the union of
       literal messages as the error type instead of a declared enum.
@@ -52,9 +52,9 @@ val parse_int : string -> int | Nil
 val length : string -> int
 val contains : (string, string) -> bool
 
-type result('a, 'e) = Ok('a) | Err('e)
+type res('a, 'e) = Ok('a) | Err('e)
 
-val parse_age : string -> result(int, "NaN" | "young" | "old")
+val parse_age : string -> res(int, "NaN" | "young" | "old")
 let parse_age s =
   let n = parse_int s in
   if n is Nil then Err("NaN")
@@ -62,11 +62,11 @@ let parse_age s =
   else if n > 130 then Err("old")
   else Ok(n)
 
-val check_email : string -> result(string, "no @")
+val check_email : string -> res(string, "no @")
 let check_email s =
   if contains (s, "@") then Ok(s) else Err("no @")
 
-val and_then : result('a, _) -> ('a -> result('b, _)) -> result('b, _)
+val and_then : res('a, string) -> ('a -> res('b, string)) -> res('b, string)
 let and_then r f =
   match r with
   | Ok(x) -> f x

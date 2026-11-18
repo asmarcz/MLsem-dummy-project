@@ -18,7 +18,7 @@
    reworded, and a new check brings a new code.
    Goal:
      val status : Ok() | Err() -> int
-   Ok() | Err() is result(any, any): any result, a code.
+   Ok() | Err() is res(any, any): any result, a code.
 
    1. Inline inferred type (Ctrl+. on "let status"):
         val status : Ok() -> 200
@@ -36,8 +36,8 @@
       status takes any result, with the validators' literal messages.
 
    4. Bonus. Simplify (Type toolkit), under Ok() | Err(): pick
-      result(any, any) (declared type).
-        val status : result(any, any) -> int
+      res(any, any) (declared type).
+        val status : res(any, any) -> int
       The same type, written with the declared name. (The code lens still
       prints Ok() | Err() -> int.)
 *)
@@ -48,9 +48,9 @@ val parse_int : string -> int | Nil
 val length : string -> int
 val contains : (string, string) -> bool
 
-type result('a, 'e) = Ok('a) | Err('e)
+type res('a, 'e) = Ok('a) | Err('e)
 
-val parse_age : string -> result(int, "NaN" | "young" | "old")
+val parse_age : string -> res(int, "NaN" | "young" | "old")
 let parse_age s =
   let n = parse_int s in
   if n is Nil then Err("NaN")
@@ -58,7 +58,7 @@ let parse_age s =
   else if n > 130 then Err("old")
   else Ok(n)
 
-val check_email : string -> result(string, "no @")
+val check_email : string -> res(string, "no @")
 let check_email s =
   if contains (s, "@") then Ok(s) else Err("no @")
 

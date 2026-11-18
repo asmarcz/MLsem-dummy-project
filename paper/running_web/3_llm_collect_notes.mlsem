@@ -18,7 +18,7 @@
      Typechecking timed out after 10 s
    With a val line, the file checks in under 0.2 s.
    Goal:
-     val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
+     val collect : [ res('a, 'e)* ] -> res([ 'a* ], [ 'e+ ])
    With it, field_errors keeps every field's type and every message (code
    lens):
      field_errors : { age : string ; email : string ..}
@@ -30,45 +30,45 @@
       to the LLM with its errors. Actual runs, 2026-11-17, 1 request each:
       claude-haiku-5-5 and claude-sonnet-5-5 both answered the goal at
       the first try, accepted:
-        val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e+ ])
+        val collect : [ res('a, 'e)* ] -> res([ 'a* ], [ 'e+ ])
 
    Other answers an LLM may give, and the operations that fix them. They
    were written by hand and checked.
 
-     A. val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'e* ])
+     A. val collect : [ res('a, 'e)* ] -> res([ 'a* ], [ 'e* ])
         Accepted. Widen: _ for [ 'e* ]. Partial signatures: Fill all gives
         the goal: an Err always carries at least one message.
 
-     B. val collect : [ result(int, string)* ] -> result([ int* ], [ string* ])
+     B. val collect : [ res(int, string)* ] -> res([ int* ], [ string* ])
         Accepted, but monomorphic: field_errors fails (the email is a
         string). Widen: _ for both ints and both strings. Partial
         signatures: Fill all:
-          val collect : [ result('a, 'b)* ] -> result([ 'a* ], [ 'b* ])
+          val collect : [ res('a, 'b)* ] -> res([ 'a* ], [ 'b* ])
         That is A (field_errors checks again), and A's steps follow.
 
-     C. val collect : [ result('a, 'e)* ] -> result([ 'a* ], 'e)
+     C. val collect : [ res('a, 'e)* ] -> res([ 'a* ], 'e)
         Rust's shape (stop at the first error). Rejected:
           at `[e]`: untypeable coercion: expected: 'e given: [ 'e ]
         If it is written in the file anyway: Widen: _ for the second 'e.
         Partial signatures: Fill all gives the goal directly.
 
-     C'. val collect : [ result('a, 'e)* ] -> result([ 'a* ], [ 'b* ])
+     C'. val collect : [ res('a, 'e)* ] -> res([ 'a* ], [ 'b* ])
         Rejected:
           at `e`: untypeable coercion: expected: 'b given: 'e
         Widen: _ for 'b. Partial signatures: Fill all gives A.
 
      D. val collect : [] -> Ok([])
-        val collect : [ result('a, 'e)+ ] -> result([ 'a+ ], [ 'e+ ])
+        val collect : [ res('a, 'e)+ ] -> res([ 'a+ ], [ 'e+ ])
         Accepted. Overload merging: Collapse, both lines selected:
-          val collect : [ result('a, 'e)* ] -> Ok([ 'a+ ]) | Ok([  ]) | Err([ 'e+ ])
+          val collect : [ res('a, 'e)* ] -> Ok([ 'a+ ]) | Ok([  ]) | Err([ 'e+ ])
         Simplify, under Ok([ 'a+ ]) | Ok([  ]) | Err([ 'e+ ]): pick
-        result([ 'a* ], [ 'e+ ]) (declared type). That is the goal.
+        res([ 'a* ], [ 'e+ ]) (declared type). That is the goal.
 
      E. The goal itself: accepted.
 
      Not a val line at all, rejected with an error that does not say why:
-       val collect : result('a, 'e) list -> result('a list, 'e list)
+       val collect : res('a, 'e) list -> res('a list, 'e list)
          at `'a list`: unexpected regular expression
-       val collect : list(result('a, 'e)) -> result(list('a), list('e))
+       val collect : list(res('a, 'e)) -> res(list('a), list('e))
          Type list undefined!
 *)
