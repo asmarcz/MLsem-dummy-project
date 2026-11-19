@@ -92,9 +92,7 @@ let signup_status form = status (validate_signup form)
 val field_of : "NaN" | "young" | "old" | "no @" | "no name" -> "age" | "email" | "name"
 let field_of e =
   match e with
-  | "NaN" -> "age"
-  | "young" -> "age"
-  | "old" -> "age"
+  | "NaN" | "young" | "old" -> "age"
   | "no @" -> "email"
   | "no name" -> "name"
   end
