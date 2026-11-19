@@ -1,4 +1,4 @@
-type result('a, 'e) = Ok('a) | Err('e)
+type res('a, 'e) = Ok('a) | Err('e)
 
 let collect rs =
   match rs with
